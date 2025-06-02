@@ -1,0 +1,22 @@
+[project]
+name = "backend-sae401"
+version = "0.0.0"
+description = "Default template for PDM package"
+authors = [
+    {name = "Sutaai", email = "sutaai@proton.me"},
+]
+dependencies = ["fastapi[standard]>=0.115.12", "tortoise-orm[accel,aiomysql]>=0.25.0"]
+requires-python = "==3.13.*"
+readme = "README.md"
+license = {text = "None"}
+
+
+[tool.pdm]
+distribution = false
+
+[dependency-groups]
+dev = [
+    "black>=25.1.0",
+    "isort>=6.0.1",
+    "ruff>=0.11.12",
+]
