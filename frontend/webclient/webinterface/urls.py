@@ -1,5 +1,5 @@
 from django.urls import path, include
-from .views import home, clients, banquier
+from .views import home, clients, banquier, api
 
 urlpatterns = [
     # Home page
@@ -14,6 +14,7 @@ urlpatterns = [
     # Banquier URLs
 
     # API URLs
+    path('api/create_account', api.create_client, name='create_client'),
     
 
     # Add more URL patterns here as needed
