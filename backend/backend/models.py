@@ -1,0 +1,91 @@
+from enum import Enum
+
+from tortoise import BaseDBAsyncClient, Model, fields
+from tortoise.signals import pre_save
+
+from passlib.hash import argon2
+
+
+class TypeUtilisateur(str, Enum):
+    USER = "utiisateur"
+    AGENT = "agent_bancaire"
+
+
+class Utilisateur(Model):
+    id = fields.IntField(primary_key=True, unique=True)
+    nom = fields.CharField(max_length=100)
+    email = fields.CharField(max_length=255, unique=True)
+    password = fields.CharField(max_length=255)
+    role = fields.CharEnumField(TypeUtilisateur, default=TypeUtilisateur.USER)
+    date_creation = fields.DatetimeField(auto_now_add=True)
+
+    def verify_password(self, password: str) -> bool:
+        """
+        Vérifie si le mot de passe en clair correspond au mot de passe haché.
+        """
+        return argon2.verify(password, self.password)
+
+    class PydanticMeta:
+        exclude = ["password"]
+
+@pre_save
+async def user_hash_password(sender: type[Utilisateur], instance: Utilisateur, using_db: BaseDBAsyncClient | None, update_fields: list[str]) -> None:
+    """
+    Vérifie que l'utilisateur a un mot de passe avant de sauvegarder.
+    Sinon, hasher le mot de passe si nécessaire.
+    """
+    if not instance.password:
+        raise ValueError("Le mot de passe ne peut pas être vide.")
+    if not instance.password.startswith("$argon2"):
+        print("Hashing password for user:", instance.email)
+        instance.password = argon2.hash(instance.password)
+
+
+class TypeCompte(str, Enum):
+    COURANT = "compte_courant"
+    LIVRET = "livret"
+
+
+class Compte(Model):
+    id = fields.IntField(primary_key=True, unique=True)
+    utilisateur: fields.ForeignKeyRelation["Utilisateur"] = fields.ForeignKeyField("models.Utilisateur", related_name="comptes")
+    type_compte = fields.CharEnumField(TypeCompte)
+    solde = fields.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    date_creation = fields.DatetimeField(auto_now_add=True)
+
+
+class Operation(Model):
+    id = fields.IntField(primary_key=True, unique=True)
+    compte_envoi: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField(
+        "models.Compte", related_name="operations_envoi"
+    )
+    compte_reception: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField(
+        "models.Compte", related_name="operations_reception"
+    )
+    montant = fields.DecimalField(max_digits=15, decimal_places=2)
+    date_creation = fields.DatetimeField(auto_now_add=True)
+
+
+class Decision(Model):
+    operation: fields.ForeignKeyRelation["Operation"] = fields.ForeignKeyField(
+        "models.Operation", related_name="decision", primary_key=True, unique=True
+    )
+    valide = fields.BooleanField()
+    agent = fields.ForeignKeyField(
+        "models.Utilisateur", related_name="decisions_agent"
+    )
+    date_creation = fields.DatetimeField(auto_now_add=True)
+
+
+class LogAction(str, Enum):
+    VALID = "valide"
+    INVALID = "invalide"
+
+
+class Log(Model):
+    id = fields.IntField(primary_key=True, unique=True)
+    utilisateur: fields.ForeignKeyNullableRelation["Utilisateur"] = fields.ForeignKeyField(
+        "models.Utilisateur", related_name="logs", null=True, on_delete=fields.SET_NULL
+    )
+    chemin = fields.TextField()
+    date_creation = fields.DatetimeField(auto_now_add=True)

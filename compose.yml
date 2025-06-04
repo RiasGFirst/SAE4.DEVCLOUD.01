@@ -18,10 +18,12 @@ services:
       - internals
 
   db:
-    image: postgres:17-alpine
+    image: mysql:9
     environment:
-      POSTGRES_USER: $PSQL_USER
-      POSTGRES_PASSWORD: $PSQL_PASSWORD
+      MYSQL_RANDOM_ROOT_PASSWORD: yes
+      MYSQL_USER: $MYSQL_USER
+      MYSQL_PASSWORD: $MYSQL_PASSWORD
+      MYSQL_DATABASE: $MYSQL_DATABASE
     networks:
       - internals
 
