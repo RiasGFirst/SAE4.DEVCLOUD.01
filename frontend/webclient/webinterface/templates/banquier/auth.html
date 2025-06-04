@@ -1,0 +1,27 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Authentification</title>
+    <link rel="stylesheet" href="{% static 'css/auth.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Bienvenue</h1>
+        <p>Connecte-toi à ton compte manager pour continuer</p>
+        <div class="forms">
+            <!-- Formulaire de connexion -->
+            <div class="form-box">
+                <h2>Login</h2>
+                <form method="POST" action="#">
+                    {% csrf_token %}
+                    <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+                    <input type="password" name="password" placeholder="Mot de passe" required>
+                    <button type="submit" class="btn">Se connecter</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
