@@ -10,9 +10,11 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    environment:
+      - DB_URL=mysql://$MYSQL_USER:$MYSQL_PASSWORD@db:3306/$MYSQL_DATABASE
     depends_on:
-      - db
-      - nats
+      db:
+        condition: service_healthy
     networks:
       - front-back
       - internals
@@ -26,12 +28,24 @@ services:
       MYSQL_DATABASE: $MYSQL_DATABASE
     networks:
       - internals
+    healthcheck:
+      test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
+      start_period: 3s
+      start_interval: 2s
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
-  nats:
-    image: nats:2.11-alpine
+  adminer:
+    image: adminer
+    restart: always
+    ports:
+      - "5545:8080"
+    # environment:
+      # - ADMINER_DEFAULT_SERVER=mysql
     networks:
+      - front-back
       - internals
-
 
 networks:
   front-back:
