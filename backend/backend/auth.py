@@ -11,7 +11,7 @@ scheme = HTTPBasic()
 
 def verify_password(user: Utilisateur, password: str) -> bool:
     """Vérifie si le mot de passe en clair correspond au mot de passe haché."""
-    return argon2.verify(password, user.password)
+    return user.verify_password(password)
 
 
 async def get_current_user(
