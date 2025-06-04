@@ -1,7 +1,6 @@
 from fastapi import APIRouter, HTTPException, status
 import pydantic
 
-from passlib.hash import argon2
 from backend.models import TypeUtilisateur, Utilisateur
 from backend.auth import CurrentUser
 
