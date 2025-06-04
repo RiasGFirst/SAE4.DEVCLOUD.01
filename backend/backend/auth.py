@@ -17,9 +17,7 @@ def verify_password(user: Utilisateur, password: str) -> bool:
 async def get_current_user(
     credentials: Annotated[HTTPBasicCredentials, Depends(scheme)],
 ) -> Utilisateur:
-    user = await Utilisateur.get_or_none(
-        email=credentials.username
-    )
+    user = await Utilisateur.get_or_none(email=credentials.username)
     if not user:
         raise HTTPException(status_code=404, detail="Utilisateur introuvable")
     if not user.password == credentials.password:

@@ -7,7 +7,7 @@ from passlib.hash import argon2
 
 
 class TypeUtilisateur(str, Enum):
-    USER = "utiisateur"
+    USER = "utilisateur"
     AGENT = "agent_bancaire"
 
 

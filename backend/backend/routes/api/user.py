@@ -24,7 +24,6 @@ class CreateUserPayload(pydantic.BaseModel):
     role: TypeUtilisateur
 
 
-
 @router.post("/", response_model=pydantic_model_creator(Utilisateur))
 async def create_user(payload: CreateUserPayload):
     """Crée un nouveeau compte utilisateur en fonction des paramètres donnés."""
