@@ -1,7 +1,36 @@
 services:
-  app:
-    ...
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - front-back
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    depends_on:
+      - db
+      - nats
+    networks:
+      - front-back
+      - internals
+
   db:
-    ...
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: $PSQL_USER
+      POSTGRES_PASSWORD: $PSQL_PASSWORD
+    networks:
+      - internals
+
   nats:
-    ...
+    image: nats:2.11-alpine
+    networks:
+      - internals
+
+
+networks:
+  front-back:
+  internals:
