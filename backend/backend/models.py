@@ -1,9 +1,8 @@
 from enum import Enum
 
+from passlib.hash import bcrypt
 from tortoise import BaseDBAsyncClient, Model, fields
 from tortoise.signals import pre_save
-
-from passlib.hash import argon2
 
 
 class TypeUtilisateur(str, Enum):
@@ -23,13 +22,19 @@ class Utilisateur(Model):
         """
         Vérifie si le mot de passe en clair correspond au mot de passe haché.
         """
-        return argon2.verify(password, self.password)
+        return bcrypt.verify(password, self.password)
 
     class PydanticMeta:
         exclude = ["password"]
 
-@pre_save
-async def user_hash_password(sender: type[Utilisateur], instance: Utilisateur, using_db: BaseDBAsyncClient | None, update_fields: list[str]) -> None:
+
+@pre_save(Utilisateur)
+async def user_hash_password(
+    sender: type[Utilisateur],
+    instance: Utilisateur,
+    using_db: BaseDBAsyncClient | None,
+    update_fields: list[str],
+) -> None:
     """
     Vérifie que l'utilisateur a un mot de passe avant de sauvegarder.
     Sinon, hasher le mot de passe si nécessaire.
@@ -38,7 +43,7 @@ async def user_hash_password(sender: type[Utilisateur], instance: Utilisateur, u
         raise ValueError("Le mot de passe ne peut pas être vide.")
     if not instance.password.startswith("$argon2"):
         print("Hashing password for user:", instance.email)
-        instance.password = argon2.hash(instance.password)
+        instance.password = bcrypt.hash(instance.password)
 
 
 class TypeCompte(str, Enum):
@@ -48,10 +53,14 @@ class TypeCompte(str, Enum):
 
 class Compte(Model):
     id = fields.IntField(primary_key=True, unique=True)
-    utilisateur: fields.ForeignKeyRelation["Utilisateur"] = fields.ForeignKeyField("models.Utilisateur", related_name="comptes")
+    utilisateur: fields.ForeignKeyRelation["Utilisateur"] = fields.ForeignKeyField(
+        "models.Utilisateur", related_name="comptes"
+    )
     type_compte = fields.CharEnumField(TypeCompte)
     solde = fields.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     date_creation = fields.DatetimeField(auto_now_add=True)
+
+    operations = fields.ReverseRelation["Operation"]
 
 
 class Operation(Model):
@@ -65,15 +74,16 @@ class Operation(Model):
     montant = fields.DecimalField(max_digits=15, decimal_places=2)
     date_creation = fields.DatetimeField(auto_now_add=True)
 
+    # TODO: ce serait intéressant de voir ce qu'il se passe quand rien n'est lié
+    decision = fields.ReverseRelation["Decision"]
+
 
 class Decision(Model):
     operation: fields.ForeignKeyRelation["Operation"] = fields.ForeignKeyField(
         "models.Operation", related_name="decision", primary_key=True, unique=True
     )
     valide = fields.BooleanField()
-    agent = fields.ForeignKeyField(
-        "models.Utilisateur", related_name="decisions_agent"
-    )
+    agent = fields.ForeignKeyField("models.Utilisateur", related_name="decisions_agent")
     date_creation = fields.DatetimeField(auto_now_add=True)
 
 
@@ -84,8 +94,13 @@ class LogAction(str, Enum):
 
 class Log(Model):
     id = fields.IntField(primary_key=True, unique=True)
-    utilisateur: fields.ForeignKeyNullableRelation["Utilisateur"] = fields.ForeignKeyField(
-        "models.Utilisateur", related_name="logs", null=True, on_delete=fields.SET_NULL
+    utilisateur: fields.ForeignKeyNullableRelation["Utilisateur"] = (
+        fields.ForeignKeyField(
+            "models.Utilisateur",
+            related_name="logs",
+            null=True,
+            on_delete=fields.SET_NULL,
+        )
     )
     chemin = fields.TextField()
     date_creation = fields.DatetimeField(auto_now_add=True)
