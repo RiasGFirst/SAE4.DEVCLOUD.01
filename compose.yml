@@ -1,15 +1,17 @@
 services:
-  # frontend:
-  #   build:
-  #     context: ./frontend
-  #     dockerfile: Dockerfile
-  #   networks:
-  #     - front-back
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    networks:
+      - front-back
 
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
     environment:
       - DB_URL=mysql://$MYSQL_USER:$MYSQL_PASSWORD@db:3306/$MYSQL_DATABASE
     depends_on:
@@ -28,6 +30,8 @@ services:
       MYSQL_DATABASE: $MYSQL_DATABASE
     networks:
       - internals
+    volumes:
+      - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
       start_period: 3s
@@ -40,7 +44,7 @@ services:
     image: adminer
     restart: always
     ports:
-      - "8002:8080"
+      - "5545:8080"
     # environment:
       # - ADMINER_DEFAULT_SERVER=mysql
     networks:
@@ -50,3 +54,6 @@ services:
 networks:
   front-back:
   internals:
+
+volumes:
+  db_data:

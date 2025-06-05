@@ -13,6 +13,7 @@ urlpatterns = [
     path('clients/dashboard', clients.dashboard_client, name='dashboard_client'),
     
     # Banquier URLs
+    path('banquier/dashboard', banquier.manager_dashboard, name='dashboard_manager'),
 
     # API URLs
     path('api/create_account', api.create_client, name='create_client'),

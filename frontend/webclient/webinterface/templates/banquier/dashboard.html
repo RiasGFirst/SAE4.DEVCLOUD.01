@@ -1,0 +1,40 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard Manager</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard_manager.css' %}">
+</head>
+<body>
+    <div class="top-bar">
+        <h1>Tableau de bord du manager</h1>
+        <a href="#" class="btn logout">Se déconnecter</a>
+    </div>
+
+    <div class="container">
+        <p>Liste des transactions à approuver :</p>
+
+        {% for transaction in transactions %}
+        <div class="transaction-item">
+            <strong>{{ transaction.type }}</strong> - {{ transaction.date }}<br>
+            Montant : {{ transaction.montant }} €<br>
+            De : {{ transaction.expediteur }} {% if transaction.beneficiaire %}→ À : {{ transaction.beneficiaire }}{% endif %}
+
+            <div class="action-buttons">
+                <form method="post" action="#">
+                    {% csrf_token %}
+                    <button type="submit" class="btn">Valider</button>
+                </form>
+                <form method="post" action="#">
+                    {% csrf_token %}
+                    <button type="submit" class="btn refus">Refuser</button>
+                </form>
+            </div>
+        </div>
+        {% empty %}
+        <p>Aucune transaction en attente.</p>
+        {% endfor %}
+    </div>
+</body>
+</html>
