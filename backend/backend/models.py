@@ -1,5 +1,6 @@
 from enum import Enum
 
+from fastapi import HTTPException
 from passlib.hash import sha256_crypt
 from tortoise import BaseDBAsyncClient, Model, fields
 from tortoise.expressions import Q
@@ -60,13 +61,21 @@ class Compte(Model):
     solde = fields.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     date_creation = fields.DatetimeField(auto_now_add=True)
 
+    @classmethod
+    async def get_user_account(cls, account_id: int, user: "Utilisateur") -> "Compte":
+        """
+        Essaye de trouver un compte pour un utilisateur et l'identifiant de son compte.
+        """
+        found_account = await cls.filter(utilisateur=user, id=account_id).first()
+        if not found_account:
+            raise HTTPException(status_code=404, detail="Account not found.")
+        return found_account
+
     async def get_operations(self) -> list["Operation"]:
         """
         Récupère toutes les opérations associées à ce compte.
         """
-        return await Operation.filter(
-            Q(compte_envoi=self) | Q(compte_reception=self)
-        )
+        return await Operation.filter(Q(compte_envoi=self) | Q(compte_reception=self))
 
 
 class Operation(Model):
@@ -80,7 +89,6 @@ class Operation(Model):
     montant = fields.DecimalField(max_digits=15, decimal_places=2)
     date_creation = fields.DatetimeField(auto_now_add=True)
 
-    # TODO: ce serait intéressant de voir ce qu'il se passe quand rien n'est lié
     decision = fields.ReverseRelation["Decision"]
 
 
