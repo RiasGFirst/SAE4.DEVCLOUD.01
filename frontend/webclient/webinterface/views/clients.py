@@ -42,12 +42,31 @@ def auth_page(request):
                 return redirect('/auth/clients')
 
         elif "login" in request.POST:
-            username = request.POST.get("username")
+            username = request.POST.get("email")
             password = request.POST.get("password")
 
             # Authentifie avec une API ou ton système
-            if username and password:  # Simule une réussite
-                messages.success(request, f"Bienvenue {username} ! Connexion réussie.")
+            if username and password:
+                response = requests.post(f"{DJANGO_HOST}/api/connect_client", data={
+                    'username': username,
+                    'password': password
+                })
+                if response.ok:
+                    data = response.json()
+                    print(data)
+                    # Création de la réponse de redirection
+                    response = redirect('/clients/dashboard')
+                    # On met le username et le password dans des cookies (attention à la sécurité)
+                    response.set_cookie('username', username, max_age=7*24*3600)  # 7 jours
+                    response.set_cookie('password', password, max_age=7*24*3600)  # 7 jours
+                    return response  # 👈 redirection vers le dashboard client
+                else:
+                    try:
+                        error_msg = response.json().get('error')
+                    except Exception as e:
+                        print("Erreur JSON :", e)
+                        error_msg = response.text
+                    messages.error(request, f"Échec de la connexion : {error_msg}")
                 return redirect('/auth/clients')
             else:
                 messages.error(request, "Identifiants invalides. Merci de réessayer.")

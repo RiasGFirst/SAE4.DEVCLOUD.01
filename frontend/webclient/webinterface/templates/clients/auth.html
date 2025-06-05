@@ -37,7 +37,7 @@
                 <h2>Login</h2>
                 <form method="POST" action="{% url 'auth_client_page' %}">
                     {% csrf_token %}
-                    <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+                    <input type="email" name="email" placeholder="Email" required>
                     <input type="password" name="password" placeholder="Mot de passe" required>
                     <input type="hidden" name="login" value="1">
                     <button type="submit" class="btn">Se connecter</button>

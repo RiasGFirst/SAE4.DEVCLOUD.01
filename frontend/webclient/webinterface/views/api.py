@@ -44,7 +44,22 @@ def create_client(request):
 @csrf_exempt
 def connect_client(request):
     if request.method == 'POST':
-        pass
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Authenticate the user with the API and use BASIC authentication
+        response = requests.get(
+            f"{API_HOST}/api/user/me",
+            auth=(username, password),
+            headers={'Content-Type': 'application/json'}
+        )
+        if response.ok:
+            data = response.json()
+            print(data)
+            return JsonResponse(data)
+        else:
+            print("Authentication failed:", response.status_code, response.text)
+            return JsonResponse({"error": "Authentication failed"}, status=response.status_code)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
     

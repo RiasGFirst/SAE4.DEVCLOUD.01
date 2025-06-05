@@ -17,6 +17,7 @@ urlpatterns = [
 
     # API URLs
     path('api/create_account', api.create_client, name='create_client'),
+    path('api/connect_client', api.connect_client, name='connect_client'),
     
 
     # Add more URL patterns here as needed
