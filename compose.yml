@@ -20,6 +20,16 @@ services:
     networks:
       - front-back
       - internals
+    develop:
+      watch:
+        - action: sync
+          path: ./backend
+          target: /app
+          ignore:
+            - .venv
+            - __pycache__
+            - pyproject.toml
+            - pdm.lock
 
   db:
     image: mysql:9
@@ -34,8 +44,8 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      start_period: 3s
-      start_interval: 2s
+      start_period: 10s
+      start_interval: 5s
       interval: 10s
       timeout: 5s
       retries: 5
