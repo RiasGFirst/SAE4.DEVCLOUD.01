@@ -11,13 +11,13 @@ router = APIRouter()
 
 @router.get("/", response_model=list[pydantic_model_creator(Utilisateur)])
 async def list_users():
-    """Liste tous les comptes utilisateurs créés."""
+    """Liste tous les utilisateurs créés."""
     users = await Utilisateur.all()
     return users
 
 
 class CreateUserPayload(pydantic.BaseModel):
-    """Payload pour la création d'un compte utilisateur."""
+    """Payload pour la création d'un utilisateur."""
 
     nom: str
     email: str
@@ -27,7 +27,7 @@ class CreateUserPayload(pydantic.BaseModel):
 
 @router.post("/", response_model=pydantic_model_creator(Utilisateur))
 async def create_user(payload: CreateUserPayload):
-    """Crée un nouveeau compte utilisateur en fonction des paramètres donnés."""
+    """Crée un nouveeau utilisateur en fonction des paramètres donnés."""
     try:
         user = await Utilisateur.create(
             nom=payload.nom,
@@ -37,7 +37,7 @@ async def create_user(payload: CreateUserPayload):
         )
         return user
     except IntegrityError:
-        return HTTPException(
+        raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED, detail="User already exists"
         )
 
@@ -49,6 +49,6 @@ async def get_user(user: CurrentUser):
 
 @router.delete("/me", response_model=None)
 async def delete_user(user: CurrentUser):
-    """Supprime le compte utilisateur connecté."""
+    """Supprime le utilisateur connecté."""
     await user.delete()
     return Response(status_code=status.HTTP_204_NO_CONTENT)

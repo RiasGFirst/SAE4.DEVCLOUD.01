@@ -4,8 +4,8 @@ from fastapi import FastAPI
 from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
-from backend.settings import settings
 from backend.routes.api import api_router
+from backend.settings import settings
 
 
 @asynccontextmanager
@@ -14,7 +14,7 @@ async def lifespan(app: FastAPI):
         app=app,
         db_url=settings.DB_URL,
         modules={"models": ["backend.models"]},
-        generate_schemas=True
+        generate_schemas=True,
     ):
         yield
         await Tortoise.close_connections()
