@@ -1,7 +1,8 @@
 from enum import Enum
 
-from passlib.hash import bcrypt
+from passlib.hash import sha256_crypt
 from tortoise import BaseDBAsyncClient, Model, fields
+from tortoise.expressions import Q
 from tortoise.signals import pre_save
 
 
@@ -22,7 +23,7 @@ class Utilisateur(Model):
         """
         Vérifie si le mot de passe en clair correspond au mot de passe haché.
         """
-        return bcrypt.verify(password, self.password)
+        return sha256_crypt.verify(password, self.password)
 
     class PydanticMeta:
         exclude = ["password"]
@@ -41,9 +42,8 @@ async def user_hash_password(
     """
     if not instance.password:
         raise ValueError("Le mot de passe ne peut pas être vide.")
-    if not instance.password.startswith("$argon2"):
-        print("Hashing password for user:", instance.email)
-        instance.password = bcrypt.hash(instance.password)
+    if not instance.password.startswith("$5$"):
+        instance.password = sha256_crypt.hash(instance.password)
 
 
 class TypeCompte(str, Enum):
@@ -60,7 +60,13 @@ class Compte(Model):
     solde = fields.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     date_creation = fields.DatetimeField(auto_now_add=True)
 
-    operations = fields.ReverseRelation["Operation"]
+    async def get_operations(self) -> list["Operation"]:
+        """
+        Récupère toutes les opérations associées à ce compte.
+        """
+        return await Operation.filter(
+            Q(compte_envoi=self) | Q(compte_reception=self)
+        )
 
 
 class Operation(Model):
