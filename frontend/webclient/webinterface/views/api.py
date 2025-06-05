@@ -40,6 +40,13 @@ def create_client(request):
             return JsonResponse(response.json(), status=response.status_code)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
+
+@csrf_exempt
+def connect_client(request):
+    if request.method == 'POST':
+        pass
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
     
 """
 {

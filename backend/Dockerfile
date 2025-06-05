@@ -1,4 +1,3 @@
-# Pour info: On a besoin de GCC donc pas d'Alpine malheureusement
 FROM python:3.13
 
 WORKDIR /app

@@ -10,6 +10,7 @@ urlpatterns = [
     path('auth/banquier', banquier.auth_page, name='auth_banquier_page'),
 
     # Client management URLs
+    path('clients/dashboard', clients.dashboard_client, name='dashboard_client'),
     
     # Banquier URLs
 

@@ -1,0 +1,32 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Tableau de bord client</title>
+    <link rel="stylesheet" href="{% static 'css/dashboard.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Bienvenue, {{ nom_client }}</h1>
+        <p>Voici un aperçu de vos comptes :</p>
+
+        <div class="account-list">
+            {% for compte in comptes %}
+            <div class="account-item">
+                <strong>{{ compte.type }}</strong><br>
+                Numéro de compte : {{ compte.numero }}<br>
+                Solde : {{ compte.solde }} €
+            </div>
+            {% endfor %}
+        </div>
+
+        <div class="buttons">
+            <a href="#" class="btn">Faire un virement</a> 
+            <a href="#" class="btn">Retirer</a>
+            <a href="#" class="btn">Déposer</a>
+            <a href="#" class="btn logout">Déconnexion</a>
+        </div>
+    </div>
+</body>
+</html>

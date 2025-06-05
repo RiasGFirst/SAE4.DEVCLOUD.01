@@ -22,10 +22,8 @@ def auth_page(request):
                 response = requests.post(f"{DJANGO_HOST}/api/create_account", data={
                     'username': username,
                     'email': email,
-                    'mot_de_passe': password1
+                    'password': password1
                 })
-                print("Response status code:", response.status_code)  # Debug
-                print("Response content:", response.content)  # Debug
                 if response.ok:
                     data = response.json()
                     print(data)
@@ -56,3 +54,21 @@ def auth_page(request):
                 return redirect('/auth/clients')
 
     return render(request, 'clients/auth.html')
+
+
+def dashboard_client(request):
+    # ⚠️ Ces données sont simulées. À remplacer par un appel API ou une requête BDD.
+
+    # Exemple de données de comptes pour le client
+    comptes = [
+        {'type': 'Compte courant', 'numero': 'XXXX-XXXX-XXXX', 'solde': 1250.45},
+        {'type': 'Livret A', 'numero': 'YYYY-YYYY-YYYY', 'solde': 3400.00},
+        {'type': 'PEL', 'numero': 'ZZZZ-ZZZZ-ZZZZ', 'solde': 7800.50}
+    ]
+
+    nom_client = "Jean Dupont"  # ⚠️ À remplacer par la récupération via session, user connecté, ou API
+
+    return render(request, 'clients/dashboard.html', {
+        'comptes': comptes,
+        'nom_client': nom_client
+    })
