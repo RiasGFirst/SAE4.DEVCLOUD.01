@@ -9,9 +9,5 @@ RUN pip install .
 
 COPY backend/ ./backend/
 
-<<<<<<< HEAD
-CMD ["fastapi", "run", "/app/backend"]
-=======
 # TODO: Changer en "run" une fois le développement terminé
 CMD ["fastapi", "dev", "/app/backend"]
->>>>>>> origin/main
