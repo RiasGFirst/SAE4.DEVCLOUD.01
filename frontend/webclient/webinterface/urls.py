@@ -12,6 +12,8 @@ urlpatterns = [
     # Client management URLs
     path('clients/dashboard', clients.dashboard_client, name='dashboard_client'),
     path('clients/logout', clients.logout, name='logout_client'),
+
+    path('clients/deposit', clients.account_deposite, name='deposit_client'),
     
     # Banquier URLs
     path('banquier/dashboard', banquier.manager_dashboard, name='dashboard_manager'),
@@ -23,6 +25,8 @@ urlpatterns = [
     path('api/get_accounts', api.get_accounts, name='get_accounts'),
 
     path('api/connect_banquier', api.connect_banquier, name='connect_banquier'),
+
+    path('api/deposit', api.deposite_account, name='deposit_account'),
     
 
     # Add more URL patterns here as needed

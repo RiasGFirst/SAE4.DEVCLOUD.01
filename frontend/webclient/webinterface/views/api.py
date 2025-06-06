@@ -89,7 +89,7 @@ def get_accounts(request):
             
             # If accounts are found, return them
             print("Accounts retrieved successfully:", data)
-            return JsonResponse(data)
+            return JsonResponse(data, safe=False)
         else:
             print("Authentication failed:", response.status_code, response.text)
             return JsonResponse({"error": "Authentication failed"}, status=response.status_code)
@@ -128,6 +128,37 @@ def create_baccount(request):
     Expected JSON body:
     """
     pass
+
+
+@csrf_exempt
+def deposite_account(request):
+    """
+    Deposit money into a bank account.
+    """
+    if request.method == 'POST':
+        compte_id = request.POST.get('compte_id')
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        data = {
+            'montant': request.POST.get('montant'),
+        }
+        response = requests.post(
+            f"{API_HOST}/api/transaction/{compte_id}/depot",
+            json=data,
+            auth=(username, password),
+            headers={'Content-Type': 'application/json'}
+        )
+
+        if response.ok:
+            data = response.json()
+            return JsonResponse(data, status=201)
+        else:
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
 
 
 

@@ -50,10 +50,24 @@ p {
     margin-bottom: 30px;
 }
 
+.content-wrapper {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+
 .account-list {
-    max-width: 600px;
-    margin: 0 auto 40px;
+    flex: 1;
+    max-width: 45%;
+    margin: 0;
     text-align: left;
+}
+
+.operations {
+    flex: 1;
+    max-width: 45%;
+    margin: 0;
+    text-align: center;
 }
 
 .account-item {
@@ -69,45 +83,33 @@ p {
     font-size: 1.2em;
 }
 
-.buttons {
+.inline-form {
     display: flex;
-    flex-wrap: wrap;
+    gap: 10px;
     justify-content: center;
-    gap: 20px;
-    margin-top: 20px;
+    margin-bottom: 20px;
+}
+
+.inline-form select, .inline-form input {
+    padding: 10px;
+    font-size: 1em;
+    border-radius: 8px;
+    border: 1px solid #ccc;
 }
 
 .btn {
-    text-decoration: none;
     background-color: #f28da0;
     color: white;
-    padding: 15px 30px;
-    font-size: 1.1em;
+    padding: 10px 20px;
+    font-size: 1em;
     border-radius: 8px;
     transition: background-color 0.3s ease;
-    min-width: 160px;
-    text-align: center;
     border: none;
     cursor: pointer;
 }
 
 .btn:hover {
     background-color: #e0667a;
-}
-
-.create-account-form {
-    display: flex;
-    justify-content: center;
-    gap: 10px;
-    margin-bottom: 30px;
-    flex-wrap: wrap;
-}
-
-.create-account-form select {
-    padding: 10px;
-    font-size: 1em;
-    border-radius: 8px;
-    border: 1px solid #ccc;
 }
 
 .messages {
@@ -135,4 +137,9 @@ p {
 .messages li.warning {
     background-color: #fff3cd;
     color: #856404;
+}
+
+.status.pending {
+    color: #ffa500;
+    font-style: italic;
 }

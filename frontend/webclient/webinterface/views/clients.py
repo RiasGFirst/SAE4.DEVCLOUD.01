@@ -97,10 +97,22 @@ def dashboard_client(request):
                                 'password': request.COOKIES.get('password')
                             })
     if response.ok:
-        comptes = response.json()
-        print("Comptes récupérés :", comptes)  # Pour debug
-        messages.success(request, "Comptes récupérés avec succès.")
+        comptes_data = response.json()
+        print("Comptes récupérés :", comptes_data)  # Pour debug
+        comptes = []
+        for compte in comptes_data:
+            compte_type = compte.get('type_compte', 'N/A')  # Assurez-vous que le type de compte est défini
+            comptes_type = {
+                'compte_courant': 'Compte courant',
+                'livret': 'Livret A',
+            }
 
+            compte['type'] = comptes_type[compte_type]  # Assurez-vous que le type de compte est défini
+            compte['numero'] = compte.get('id', 'N/A')
+            compte['solde'] = float(compte.get('solde', 0.0))  # Assurez-vous que le solde est un float
+            compte['validated'] = compte.get('validated', False)  # Assurez-vous que le champ validé est défini
+            comptes.append(compte)
+        # Si les comptes sont récupérés avec succès, on les passe au template
         return render(request, 'clients/dashboard.html', {
             'comptes': comptes,
             'nom_client': nom_client
@@ -141,3 +153,38 @@ def logout(request):
 
 def create_account(request):
     pass
+
+
+def account_deposite(request):
+    if request.method == "POST":
+        compte_id = request.POST.get('compte')
+        montant = request.POST.get('montant')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if compte_id and montant:
+            print("Tentative de dépôt sur le compte :", compte_id, "Montant :", montant)  # Pour debug
+            response = requests.post(f"{DJANGO_HOST}/api/deposit", data={
+                'compte_id': compte_id,
+                'montant': montant,
+                'username': username,
+                'password': password
+            })
+            if response.ok:
+                data = response.json()
+                print("Dépôt réussi :", data)
+                messages.success(request, f"Dépôt de {montant}€ sur le compte {compte_id} réussi.")
+            else:
+                try:
+                    error_msg = response.json().get('error', 'Erreur inconnue')
+                except Exception as e:
+                    print("Erreur JSON :", e)
+                    error_msg = response.text
+                messages.error(request, f"Échec du dépôt : {error_msg}")
+            return redirect('/clients/dashboard')  # Redirection après le dépôt
+        else:
+            messages.error(request, "Veuillez fournir un identifiant de compte et un montant.")
+            return redirect('/clients/dashboard')
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')
