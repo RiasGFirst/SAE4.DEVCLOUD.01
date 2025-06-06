@@ -28,7 +28,7 @@ class CreateUserPayload(pydantic.BaseModel):
 
 class CreateUserResponse(pydantic.BaseModel):
     user: Annotated[Utilisateur, pydantic_model_creator(Utilisateur)]
-    account: Annotated[Compte, pydantic_model_creator(Compte)]
+    account: Annotated[Compte, pydantic_model_creator(Compte)] | None
 
 
 @router.post("/", response_model=CreateUserResponse)
@@ -41,7 +41,10 @@ async def create_user(payload: CreateUserPayload):
             password=payload.mot_de_passe,
             role=payload.role,
         )
-        compte = await Compte.create(utilisateur=user, type_compte=TypeCompte.COURANT, solde=0, validated=True)
+        if user.role == TypeUtilisateur.USER:
+            compte = await Compte.create(utilisateur=user, type_compte=TypeCompte.COURANT, solde=0, validated=True)
+        else:
+            compte = None
         return {"user": user, "account": compte}
     except IntegrityError:
         raise HTTPException(
