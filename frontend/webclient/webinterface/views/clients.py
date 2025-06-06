@@ -27,7 +27,7 @@ def auth_page(request):
                 if response.ok:
                     data = response.json()
                     print(data)
-                    messages.success(request, f"L'utilisateur {data['nom']} a été inscrit avec succès.")
+                    messages.success(request, f"L'utilisateur {username} a été inscrit avec succès.")
                 else:
                     try:
                         error_msg = response.json().get('error', 'Erreur inconnue')
