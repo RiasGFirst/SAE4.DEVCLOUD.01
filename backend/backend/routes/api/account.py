@@ -18,6 +18,14 @@ async def list_accounts(user: CurrentUser):
     return accounts
 
 
+@router.get("/tovalidate")
+async def list_accounts_to_validate(user: CurrentUser):
+    """Liste tous les comptes utilisateurs à valider."""
+    user.can_authorize()
+    accounts = await Compte.filter(utilisateur=user, validated=False)
+    return accounts
+
+
 class CreateAccountPayload(pydantic.BaseModel):
     """Payload pour la création d'un compte."""
 

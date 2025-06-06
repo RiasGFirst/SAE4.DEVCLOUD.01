@@ -125,3 +125,12 @@ async def create_virement(
     )
 
     return operation
+
+
+
+@router.get(f"/tovalidate")
+async def list_operations_to_validate(user: CurrentUser):
+    user.can_authorize()
+    virements = await Virement.filter(decision=None)
+    retraits = await Retrait.filter(decision=None)
+    return [virements, retraits]

@@ -53,7 +53,7 @@ async def user_hash_password(
     update_fields: list[str],
 ) -> None:
     """
-    Vérifixe que l'utilisateur a un mot de passe avant de sauvegarder.
+    Vérifie que l'utilisateur a un mot de passe avant de sauvegarder.
     Sinon, hasher le mot de passe si nécessaire.
     """
     if not instance.password:
