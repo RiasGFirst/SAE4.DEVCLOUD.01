@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages  # 👈 important
-import dotenv
 import requests
+import dotenv
 import os
 
 # Load environment variables from .env file
@@ -137,3 +137,7 @@ def logout(request):
     response.delete_cookie('user')
     messages.success(request, "Vous avez été déconnecté avec succès.")
     return response
+
+
+def create_account(request):
+    pass

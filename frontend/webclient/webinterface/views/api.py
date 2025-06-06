@@ -121,6 +121,15 @@ def connect_banquier(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
+def create_baccount(request):
+    """
+    Create a new bank account for a user.
+    
+    Expected JSON body:
+    """
+    pass
+
+
 
     
 """
