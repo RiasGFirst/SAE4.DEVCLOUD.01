@@ -32,7 +32,7 @@ services:
             - pdm.lock
 
   db:
-    image: mysql:9
+    image: mysql:9.3
     environment:
       MYSQL_RANDOM_ROOT_PASSWORD: yes
       MYSQL_USER: $MYSQL_USER
@@ -44,7 +44,7 @@ services:
       - db_data:/var/lib/mysql
     healthcheck:
       test: ["CMD", "mysqladmin" ,"ping", "-h", "localhost"]
-      start_period: 10s
+      start_period: 15s
       start_interval: 5s
       interval: 10s
       timeout: 5s
