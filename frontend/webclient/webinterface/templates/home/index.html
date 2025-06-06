@@ -1,0 +1,19 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Choix Utilisateur</title>
+    <link rel="stylesheet" href="{% static 'css/home.css' %}">
+</head>
+<body>
+    <div class="container">
+        <h1>Bienvenue</h1>
+        <p>Veuillez choisir votre rôle :</p>
+        <div class="buttons">
+            <a href="{% url 'auth_client_page' %}" class="btn">Client</a>
+            <a href="{% url 'auth_banquier_page' %}" class="btn">Banquier</a>
+        </div>
+    </div>
+</body>
+</html>

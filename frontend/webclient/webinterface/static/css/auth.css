@@ -1,0 +1,116 @@
+body {
+    background-color: #ffffff;
+    color: #b30059;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+}
+
+h1 {
+    font-size: 2.5em;
+    margin-bottom: 10px;
+}
+
+p {
+    font-size: 1.2em;
+    margin-bottom: 40px;
+}
+
+.container {
+    max-width: 900px;
+    width: 100%;
+    padding: 40px 20px;
+    text-align: center;
+}
+
+.forms {
+    display: flex;
+    justify-content: center;
+    gap: 60px;
+    flex-wrap: wrap;
+    margin-top: 40px;
+}
+
+.form-box {
+    background-color: #fce4ec;
+    padding: 30px;
+    border-radius: 12px;
+    width: 300px;
+    box-shadow: 0 0 10px rgba(179, 0, 89, 0.2);
+    text-align: left;
+}
+
+.form-box h2 {
+    margin-bottom: 20px;
+    text-align: center;
+}
+
+input[type="text"],
+input[type="email"],
+input[type="password"] {
+    width: 100%;
+    padding: 12px;
+    margin: 10px 0 20px;
+    border: 1px solid #ccc;
+    border-radius: 8px;
+    font-size: 1em;
+    box-sizing: border-box;
+}
+
+.btn {
+    display: block;
+    width: 100%;
+    text-align: center;
+    background-color: #f28da0;
+    color: white;
+    padding: 12px 20px;
+    font-size: 1.1em;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.btn:hover {
+    background-color: #e0667a;
+}
+
+.messages {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.messages li {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.messages li.error {
+    background-color: #ffe0e0;
+    color: #b30000;
+}
+
+.messages li.success {
+    background-color: #e0ffe6;
+    color: #006600;
+}
+
+
+@media (max-width: 700px) {
+    .forms {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .form-box {
+        width: 90%;
+        max-width: 350px;
+    }
+}
