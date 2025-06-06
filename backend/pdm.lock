@@ -5,7 +5,7 @@
 groups = ["default", "dev"]
 strategy = ["inherit_metadata"]
 lock_version = "4.5.0"
-content_hash = "sha256:2a1b874369f28e9abc81b4d03f58412e8e9172afd54f980ee0f96401f4736b98"
+content_hash = "sha256:6cc37b118d5e3da99f86603d3fa5029f1b4c4b8613e7ae5b7df93f27cd2f6c18"
 
 [[metadata.targets]]
 requires_python = "==3.13.*"
@@ -540,6 +540,20 @@ files = [
 ]
 
 [[package]]
+name = "pycountry"
+version = "24.6.1"
+requires_python = ">=3.8"
+summary = "ISO country, subdivision, language, currency and script definitions and their translations"
+groups = ["default"]
+dependencies = [
+    "importlib-resources>5.12.0; python_version < \"3.9\"",
+]
+files = [
+    {file = "pycountry-24.6.1-py3-none-any.whl", hash = "sha256:f1a4fb391cd7214f8eefd39556d740adcc233c778a27f8942c8dca351d6ce06f"},
+    {file = "pycountry-24.6.1.tar.gz", hash = "sha256:b61b3faccea67f87d10c1f2b0fc0be714409e8fcdcc1315613174f6466c10221"},
+]
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 requires_python = ">=3.8"
@@ -732,6 +746,17 @@ files = [
 ]
 
 [[package]]
+name = "rstr"
+version = "3.2.2"
+requires_python = ">=3.7"
+summary = "Generate random strings in Python"
+groups = ["default"]
+files = [
+    {file = "rstr-3.2.2-py3-none-any.whl", hash = "sha256:f39195d38da1748331eeec52f1276e71eb6295e7949beea91a5e9af2340d7b3b"},
+    {file = "rstr-3.2.2.tar.gz", hash = "sha256:c4a564d4dfb4472d931d145c43d1cf1ad78c24592142e7755b8866179eeac012"},
+]
+
+[[package]]
 name = "ruff"
 version = "0.11.12"
 requires_python = ">=3.7"
@@ -756,6 +781,23 @@ files = [
     {file = "ruff-0.11.12-py3-none-win_amd64.whl", hash = "sha256:5a4d9f8030d8c3a45df201d7fb3ed38d0219bccd7955268e863ee4a115fa0832"},
     {file = "ruff-0.11.12-py3-none-win_arm64.whl", hash = "sha256:65194e37853158d368e333ba282217941029a28ea90913c67e558c611d04daa5"},
     {file = "ruff-0.11.12.tar.gz", hash = "sha256:43cf7f69c7d7c7d7513b9d59c5d8cafd704e05944f978614aa9faff6ac202603"},
+]
+
+[[package]]
+name = "schwifty"
+version = "2025.1.0"
+requires_python = ">=3.9"
+summary = ""
+groups = ["default"]
+dependencies = [
+    "importlib-resources>=5.10; python_version <= \"3.11\"",
+    "pycountry",
+    "rstr",
+    "typing-extensions>=4.0.1; python_version <= \"3.10\"",
+]
+files = [
+    {file = "schwifty-2025.1.0-py3-none-any.whl", hash = "sha256:dca8abc9db4b7fc7f3b73a1f581ac1c3cc226a0902257275a3b08bd8275170ed"},
+    {file = "schwifty-2025.1.0.tar.gz", hash = "sha256:f492f3cbea3beb1fe0bf11a89075e6e413a5f500ee1afdb29a124a9a89b1a2ca"},
 ]
 
 [[package]]
