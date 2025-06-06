@@ -59,6 +59,7 @@ def auth_page(request):
                     # On met le username et le password dans des cookies (attention à la sécurité)
                     response.set_cookie('username', username, max_age=7*24*3600)  # 7 jours
                     response.set_cookie('password', password, max_age=7*24*3600)  # 7 jours
+                    response.set_cookie('user', data.get('nom'), max_age=7*24*3600)  # 7 jours
                     return response  # 👈 redirection vers le dashboard client
                 else:
                     try:
@@ -71,23 +72,68 @@ def auth_page(request):
             else:
                 messages.error(request, "Identifiants invalides. Merci de réessayer.")
                 return redirect('/auth/clients')
+    else:
+        # Si la méthode n'est pas POST, on affiche simplement la page d'authentification
+        if request.COOKIES.get('username') and request.COOKIES.get('password'):
+            # Si l'utilisateur est déjà connecté, on le redirige vers le tableau de bord
+            return redirect('/clients/dashboard')
 
     return render(request, 'clients/auth.html')
 
 
 def dashboard_client(request):
     # ⚠️ Ces données sont simulées. À remplacer par un appel API ou une requête BDD.
+    if not request.COOKIES.get('username') or not request.COOKIES.get('password'):
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')
+    
+    nom_client = request.COOKIES.get('user', 'Client inconnu')
+    print("Nom du client récupéré depuis les cookies :", nom_client)  # Pour debug
+
+    # Récupération des comptes via l'API
+    response = requests.post(f"{DJANGO_HOST}/api/get_accounts",
+                            data={
+                                'username': request.COOKIES.get('username'),
+                                'password': request.COOKIES.get('password')
+                            })
+    if response.ok:
+        comptes = response.json()
+        print("Comptes récupérés :", comptes)  # Pour debug
+        messages.success(request, "Comptes récupérés avec succès.")
+
+        return render(request, 'clients/dashboard.html', {
+            'comptes': comptes,
+            'nom_client': nom_client
+        })
+
+    else:
+        try:
+            error_msg = response.json().get('error', 'Erreur inconnue')
+        except Exception as e:
+            print("Erreur JSON :", e)
+            error_msg = response.text
+        messages.error(request, f"Échec de la récupération des comptes : {error_msg}")
+        comptes = []
+
 
     # Exemple de données de comptes pour le client
-    comptes = [
-        {'type': 'Compte courant', 'numero': 'XXXX-XXXX-XXXX', 'solde': 1250.45},
-        {'type': 'Livret A', 'numero': 'YYYY-YYYY-YYYY', 'solde': 3400.00},
-        {'type': 'PEL', 'numero': 'ZZZZ-ZZZZ-ZZZZ', 'solde': 7800.50}
-    ]
+    # comptes = [
+    #     {'type': 'Compte courant', 'numero': 'XXXX-XXXX-XXXX', 'solde': 1250.45},
+    #     {'type': 'Livret A', 'numero': 'YYYY-YYYY-YYYY', 'solde': 3400.00},
+    #     {'type': 'PEL', 'numero': 'ZZZZ-ZZZZ-ZZZZ', 'solde': 7800.50}
+    # ]
 
-    nom_client = "Jean Dupont"  # ⚠️ À remplacer par la récupération via session, user connecté, ou API
+        return render(request, 'clients/dashboard.html', {
+            'comptes': comptes,
+            'nom_client': nom_client
+        })
 
-    return render(request, 'clients/dashboard.html', {
-        'comptes': comptes,
-        'nom_client': nom_client
-    })
+
+def logout(request):
+    # Supprime les cookies de session
+    response = redirect('/auth/clients')
+    response.delete_cookie('username')
+    response.delete_cookie('password')
+    response.delete_cookie('user')
+    messages.success(request, "Vous avez été déconnecté avec succès.")
+    return response

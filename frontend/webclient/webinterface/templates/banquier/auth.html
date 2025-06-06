@@ -10,14 +10,22 @@
     <div class="container">
         <h1>Bienvenue</h1>
         <p>Connecte-toi à ton compte manager pour continuer</p>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %} 
         <div class="forms">
             <!-- Formulaire de connexion -->
             <div class="form-box">
                 <h2>Login</h2>
-                <form method="POST" action="#">
+                <form method="POST" action="{% url 'auth_banquier_page' %}">
                     {% csrf_token %}
-                    <input type="text" name="username" placeholder="Nom d'utilisateur" required>
+                    <input type="email" name="username" placeholder="Email" required>
                     <input type="password" name="password" placeholder="Mot de passe" required>
+                    <input type="hidden" name="login" value="1">
                     <button type="submit" class="btn">Se connecter</button>
                 </form>
             </div>

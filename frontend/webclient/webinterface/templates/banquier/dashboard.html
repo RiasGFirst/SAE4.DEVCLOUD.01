@@ -9,10 +9,11 @@
 <body>
     <div class="top-bar">
         <h1>Tableau de bord du manager</h1>
-        <a href="#" class="btn logout">Se déconnecter</a>
+        <a href="{% url 'logout_banquier' %}" class="btn logout">Se déconnecter</a>
     </div>
 
     <div class="container">
+        <h2>Bienvenue, {{ nom_manager }} !</h2>
         <p>Liste des transactions à approuver :</p>
 
         {% for transaction in transactions %}

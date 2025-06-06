@@ -7,11 +7,29 @@
     <link rel="stylesheet" href="{% static 'css/dashboard_cli.css' %}">
 </head>
 <body>
+    <div class="top-bar">
+        <h1>Tableau de bord client</h1>
+        <a href="{% url 'logout_client' %}" class="btn logout">Se déconnecter</a>
+    </div>
+
     <div class="container">
-        <h1>Bienvenue, {{ nom_client }}</h1>
+        <h2>Bienvenue, {{ nom_client }}</h2>
+
         <p>Voici un aperçu de vos comptes :</p>
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
 
         <div class="account-list">
+            {% if comptes %}
+            <p>Vous avez {{ comptes|length }} compte(s) :</p>
+            {% else %}
+            <p>Vous n'avez aucun compte. Veuillez contacter votre banquier pour en créer un.</p>
+            {% endif %}
             {% for compte in comptes %}
             <div class="account-item">
                 <strong>{{ compte.type }}</strong><br>
@@ -21,12 +39,20 @@
             {% endfor %}
         </div>
 
+        <form method="post" action="#" class="create-account-form">
+            {% csrf_token %}
+            <select name="type_compte" required>
+                <option value="">-- Choisir un type de compte --</option>
+                <option value="courant">Compte courant</option>
+                <option value="livret">Livret</option>
+            </select>
+            <button type="submit" class="btn">Créer un compte</button>
+        </form>
+
         <div class="buttons">
-            <a href="#" class="btn">Creer un compte</a> 
-            <a href="#" class="btn">Faire un virement</a> 
+            <a href="#" class="btn">Faire un virement</a>
             <a href="#" class="btn">Retirer</a>
             <a href="#" class="btn">Déposer</a>
-            <a href="#" class="btn logout">Déconnexion</a>
         </div>
     </div>
 </body>

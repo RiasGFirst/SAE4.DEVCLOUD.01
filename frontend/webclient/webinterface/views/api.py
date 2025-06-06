@@ -56,12 +56,72 @@ def connect_client(request):
         if response.ok:
             data = response.json()
             print(data)
+            if data.get('role') != 'utilisateur':
+                print("User is not a client.")
+                return JsonResponse({"error": "User is not a client"}, status=403)
+            print("Client authenticated successfully:", data)
             return JsonResponse(data)
         else:
             print("Authentication failed:", response.status_code, response.text)
             return JsonResponse({"error": "Authentication failed"}, status=response.status_code)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_accounts(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Authenticate the user with the API and use BASIC authentication
+        response = requests.get(
+            f"{API_HOST}/api/account/",
+            auth=(username, password),
+            headers={'Content-Type': 'application/json'}
+        )
+        if response.ok:
+            data = response.json()
+            print(data)
+            if data == []:
+                print("No accounts found for the user.")
+                return JsonResponse({"error": "No accounts found"}, status=404)
+            
+            # If accounts are found, return them
+            print("Accounts retrieved successfully:", data)
+            return JsonResponse(data)
+        else:
+            print("Authentication failed:", response.status_code, response.text)
+            return JsonResponse({"error": "Authentication failed"}, status=response.status_code)
+        
+
+@csrf_exempt
+def connect_banquier(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        # Authenticate the user with the API and use BASIC authentication
+        response = requests.get(
+            f"{API_HOST}/api/user/me",
+            auth=(username, password),
+            headers={'Content-Type': 'application/json'}
+        )
+        if response.ok:
+            data = response.json()
+            if data.get('role') != 'agent_bancaire':
+                print("User is not a banquier.")
+                return JsonResponse({"error": "User is not a banquier"}, status=403)
+            print("Banquier authenticated successfully:", data)
+            return JsonResponse(data)
+        else:
+            print("Authentication failed:", response.status_code, response.text)
+            return JsonResponse({"error": "Authentication failed"}, status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+
     
 """
 {
