@@ -3,10 +3,11 @@ from typing import Annotated
 
 import pydantic
 from fastapi import APIRouter, HTTPException, status
+from tortoise.transactions import in_transaction
 from tortoise.contrib.pydantic import pydantic_model_creator
 
 from backend.auth import CurrentUser
-from backend.models import Compte, Depot, Retrait, Virement
+from backend.models import Compte, Decision, Operation, TypeOperation
 
 router = APIRouter()
 
@@ -19,7 +20,7 @@ class CreateOperationOnlyAmountPayload(pydantic.BaseModel):
 
 @router.post(
     "/{account_id}/depot",
-    response_model=Annotated[Depot, pydantic_model_creator(Depot)]
+    response_model=Annotated[Operation, pydantic_model_creator(Operation)],
 )
 async def create_deposit_operation(
     account_id: int, user: CurrentUser, payload: CreateOperationOnlyAmountPayload
@@ -34,54 +35,71 @@ async def create_deposit_operation(
     Le dépot est directement accepté.
     """
     account = await Compte.get_user_account(account_id, user)
-    account.ensure_validated()
+    await account.ensure_validated()
 
     if payload.montant <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive"
         )
 
-    operation = await Depot.create(compte=account, montant=payload.montant)
-    account.solde += Decimal(payload.montant)
-    await account.save()
+    async with in_transaction() as conn:
+        operation = await Operation.create(
+            type_operation=TypeOperation.DEPOT,
+            compte_source=None,
+            compte_destination=account,
+            montant=payload.montant,
+        )
+        await Decision.create(operation=operation, valide=True, agent=None)
+        operation.processed = True
+        await operation.save()
 
-    return operation
+        account.solde += Decimal(payload.montant)
+        await account.save()
+
+        return operation
 
 
 @router.post(
     "/{account_id}/retrait",
-    response_model=Annotated[Retrait, pydantic_model_creator(Retrait)]
+    response_model=Annotated[Operation, pydantic_model_creator(Operation)],
 )
 async def create_withdrawal_operation(
     account_id: int, user: CurrentUser, payload: CreateOperationOnlyAmountPayload
 ):
-    account = await Compte.get_user_account(account_id, user)
-    account.ensure_validated()
-
     if payload.montant <= 0:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive"
         )
+
+    account = await Compte.get_user_account(account_id, user)
+    await account.ensure_validated()
 
     if account.solde < payload.montant:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
         )
 
-    operation = await Retrait.create(compte=account, montant=payload.montant)
-    return operation
+    async with in_transaction() as conn:
+        operation = await Operation.create(
+            type_operation=TypeOperation.RETRAIT,
+            compte_source=account,
+            compte_destination=None,
+            montant=-payload.montant,
+        )
+        account.solde -= Decimal(payload.montant)
+        return operation
 
 
 class CreateOperationVirementPayload(pydantic.BaseModel):
     """Payload pour la création d'une opération vers un compte."""
 
-    compte_reception: int
+    target: int
     montant: float
 
 
 @router.post(
     "/{account_id}/virement",
-    response_model=Annotated[Virement, pydantic_model_creator(Virement)]
+    response_model=Annotated[Operation, pydantic_model_creator(Operation)],
 )
 async def create_virement(
     account_id: int, user: CurrentUser, payload: CreateOperationVirementPayload
@@ -98,39 +116,79 @@ async def create_virement(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive"
         )
-    if account_id == payload.compte_reception:
+    if account_id == payload.target:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Cannot transfer to the same account",
         )
 
     account = await Compte.get_user_account(account_id, user)
+    try:
+        await account.ensure_validated()
+    except HTTPException as exception:
+        exception.detail += " (Account: source)"
+        raise exception
 
     if account.solde < payload.montant:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
         )
 
-    compte_reception = await Compte.filter(id=payload.compte_reception).first()
+    compte_reception = await Compte.filter(id=payload.target).first()
     if not compte_reception:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Destination account not found",
         )
+    try:
+        await compte_reception.ensure_validated()
+    except HTTPException as exception:
+        exception.detail += " (Account: destination)"
+        raise exception
 
-    operation = await Virement.create(
-        compte_envoi=account,
-        compte_reception=compte_reception,
-        montant=payload.montant,
-    )
+    async with in_transaction() as conn:
+        operation = await Operation.create(
+            type_operation=TypeOperation.VIREMENT,
+            compte_source=account,
+            compte_destination=compte_reception,
+            montant=-payload.montant,
+        )
 
     return operation
 
 
-
-@router.get(f"/tovalidate")
+@router.get("/tovalidate")
 async def list_operations_to_validate(user: CurrentUser):
     user.can_authorize()
-    virements = await Virement.filter(decision=None)
-    retraits = await Retrait.filter(decision=None)
-    return [virements, retraits]
+    virements = await Operation.filter(decision=None)
+    return virements
+
+
+class AuthorizeOperationPayload(pydantic.BaseModel):
+    authorize: bool
+
+
+@router.post("/validate/{id}")
+async def validate_operation(
+    id: int, payload: AuthorizeOperationPayload, user: CurrentUser
+):
+    user.can_authorize()
+
+    operation = await Operation.filter(id=id).first().prefetch_related("decision")
+    if not operation:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Operation not found",
+        )
+    if operation.decision:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Operation already validated",
+        )
+
+    async with in_transaction() as conn:
+        await Decision.create(operation=operation, valide=payload.authorize, agent=user)
+        operation.processed = True
+        await operation.save()
+
+    return operation
