@@ -109,6 +109,7 @@ def dashboard_client(request):
 
             compte['type'] = comptes_type[compte_type]  # Assurez-vous que le type de compte est défini
             compte['numero'] = compte.get('id', 'N/A')
+            compte['iban'] = compte.get('iban', 'N/A')  # Assurez-vous que l'IBAN est défini
             compte['solde'] = float(compte.get('solde', 0.0))  # Assurez-vous que le solde est un float
             compte['validated'] = compte.get('validated', False)  # Assurez-vous que le champ validé est défini
             comptes.append(compte)

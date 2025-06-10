@@ -154,6 +154,7 @@ def deposite_account(request):
             data = response.json()
             return JsonResponse(data, status=201)
         else:
+            print("Deposit failed:", response.status_code, response.text)
             return JsonResponse(response.json(), status=response.status_code)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)

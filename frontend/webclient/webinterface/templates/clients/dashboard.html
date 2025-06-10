@@ -34,7 +34,7 @@
                 {% for compte in comptes %}
                 <div class="account-item">
                     <strong>{{ compte.type }}</strong><br>
-                    Numéro de compte : {{ compte.numero }}<br>
+                    Numéro de compte : {{ compte.iban }}<br>
                     Solde : {{ compte.solde }} €
                     <br>
                     {% if compte.validated == 'False' %}
