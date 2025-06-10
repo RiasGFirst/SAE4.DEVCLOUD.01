@@ -1,11 +1,18 @@
 from typing import Annotated
+
 import pydantic
 from fastapi import APIRouter, HTTPException, Response, status
 from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.exceptions import IntegrityError
 
 from backend.auth import CurrentUser
-from backend.models import Compte, TypeCompte, TypeUtilisateur, Utilisateur, ValidationCompte
+from backend.models import (
+    Compte,
+    TypeCompte,
+    TypeUtilisateur,
+    Utilisateur,
+    ValidationCompte,
+)
 
 router = APIRouter()
 

@@ -61,7 +61,9 @@ class GetAccountResponse(pydantic.BaseModel):
 
     account: Annotated[Compte, pydantic_model_creator(Compte)]
     operations: list[Annotated[Operation, pydantic_model_creator(Operation)]]
-    validation: Annotated[ValidationCompte, pydantic_model_creator(ValidationCompte)] | None
+    validation: (
+        Annotated[ValidationCompte, pydantic_model_creator(ValidationCompte)] | None
+    )
 
 
 @router.get("/{account_id}", response_model=GetAccountResponse)
@@ -96,7 +98,9 @@ async def authorize_account(
 
     account = await Compte.filter(id=account_id).get_or_none()
     if not account:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Account not found"
+        )
 
     await ValidationCompte.create(compte=account, valide=payload.authorize, agent=user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)

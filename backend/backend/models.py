@@ -1,15 +1,14 @@
-from decimal import Decimal
 import typing
 from enum import Enum
-
 from functools import partial
+
 from fastapi import HTTPException
 from passlib.hash import sha256_crypt
 from schwifty import IBAN
 from tortoise import BaseDBAsyncClient, Model, fields
 from tortoise.expressions import Q
+from tortoise.signals import post_save, pre_save
 from tortoise.transactions import in_transaction
-from tortoise.signals import pre_save, post_save
 
 
 class TypeUtilisateur(str, Enum):
@@ -69,7 +68,9 @@ class TypeCompte(str, Enum):
 
 class Compte(Model):
     id = fields.IntField(primary_key=True, unique=True)
-    iban = fields.CharField(max_length=34, unique=True, default=partial(IBAN.random, country_code="FR"))
+    iban = fields.CharField(
+        max_length=34, unique=True, default=partial(IBAN.random, country_code="FR")
+    )
     utilisateur: fields.ForeignKeyRelation["Utilisateur"] = fields.ForeignKeyField(
         "models.Utilisateur", related_name="comptes"
     )
@@ -97,18 +98,24 @@ class Compte(Model):
             raise HTTPException(status_code=404, detail="Account not found.")
         return found_account
 
-    async def get_all_operations(self, prefetch_decisions: bool = False) -> typing.Iterable["Operation"]:
+    async def get_all_operations(
+        self, prefetch_decisions: bool = False
+    ) -> typing.Iterable["Operation"]:
         return await Operation.filter_by_account(self, prefetch_decisions)
 
 
 class ValidationCompte(Model):
     """Modèle utilisé pour confirmer qu'un compte peut être utilisé."""
+
     id = fields.IntField(primary_key=True, unique=True)
     valide = fields.BooleanField(default=False)
-    compte: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField("models.Compte", related_name="validation")
-    agent: fields.ForeignKeyNullableRelation["Utilisateur"] = fields.ForeignKeyField("models.Utilisateur", related_name="validation_agent", null=True)
+    compte: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField(
+        "models.Compte", related_name="validation"
+    )
+    agent: fields.ForeignKeyNullableRelation["Utilisateur"] = fields.ForeignKeyField(
+        "models.Utilisateur", related_name="validation_agent", null=True
+    )
     date_validation = fields.DatetimeField(auto_now_add=True)
-
 
 
 class TypeOperation(str, Enum):
@@ -141,7 +148,9 @@ class Operation(Model):
         return await cls.filter(decision=None)
 
     @classmethod
-    async def filter_by_account(cls, compte: "Compte", prefetch_decisions: bool = False) -> typing.Iterable[typing.Self]:
+    async def filter_by_account(
+        cls, compte: "Compte", prefetch_decisions: bool = False
+    ) -> typing.Iterable[typing.Self]:
         op = cls.filter(Q(compte_source=compte) | Q(compte_destination=compte))
         if prefetch_decisions:
             return await op.prefetch_related("decision")
@@ -157,7 +166,9 @@ class Decision(Model):
         null=True,
         on_delete=fields.RESTRICT,
     )
-    operation: fields.ForeignKeyRelation["Operation"] = fields.ForeignKeyField("models.Operation", related_name="decision")
+    operation: fields.ForeignKeyRelation["Operation"] = fields.ForeignKeyField(
+        "models.Operation", related_name="decision"
+    )
     date_creation = fields.DatetimeField(auto_now_add=True)
 
 
