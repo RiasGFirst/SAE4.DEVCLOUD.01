@@ -6,7 +6,7 @@ from tortoise import Tortoise
 from tortoise.contrib.fastapi import RegisterTortoise
 
 from backend.models import Log
-from backend.routes.api import api_router
+from backend.routes import api_router
 from backend.settings import settings
 
 

@@ -1,11 +1,19 @@
 from typing import Annotated
+
 import pydantic
 from fastapi import APIRouter, HTTPException, Response, status
 from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.exceptions import IntegrityError
 
 from backend.auth import CurrentUser
-from backend.models import Compte, TypeCompte, TypeUtilisateur, Utilisateur, ValidationCompte
+from backend.models import (
+    Compte,
+    Operation,
+    TypeCompte,
+    TypeUtilisateur,
+    Utilisateur,
+    ValidationCompte,
+)
 
 router = APIRouter()
 
@@ -60,6 +68,22 @@ async def create_user(payload: CreateUserPayload):
 @router.get("/me", response_model=pydantic_model_creator(Utilisateur))
 async def get_user(user: CurrentUser):
     return user
+
+
+@router.get(
+    "/me/recent",
+    response_model=dict[str, list[pydantic_model_creator(Operation)]],
+)
+async def get_recent_operations(user: CurrentUser, limit: int = 5):
+    await user.fetch_related("comptes")
+    operations: dict[str, list[Operation]] = {}
+    for compte in user.comptes:
+        operations[compte.iban] = (
+            await Operation.filter_by_account(compte)
+            .limit(limit)
+            .order_by("-date_creation")
+        )
+    return operations
 
 
 @router.delete("/me", response_model=None)

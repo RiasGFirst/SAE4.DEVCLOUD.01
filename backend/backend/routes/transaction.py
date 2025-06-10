@@ -3,8 +3,8 @@ from typing import Annotated
 
 import pydantic
 from fastapi import APIRouter, HTTPException, status
-from tortoise.transactions import in_transaction
 from tortoise.contrib.pydantic import pydantic_model_creator
+from tortoise.transactions import in_transaction
 
 from backend.auth import CurrentUser
 from backend.models import Compte, Decision, Operation, TypeOperation
@@ -42,7 +42,7 @@ async def create_deposit_operation(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Amount must be positive"
         )
 
-    async with in_transaction() as conn:
+    async with in_transaction():
         operation = await Operation.create(
             type_operation=TypeOperation.DEPOT,
             compte_source=None,
@@ -79,7 +79,7 @@ async def create_withdrawal_operation(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
         )
 
-    async with in_transaction() as conn:
+    async with in_transaction():
         operation = await Operation.create(
             type_operation=TypeOperation.RETRAIT,
             compte_source=account,
@@ -146,7 +146,7 @@ async def create_virement(
         exception.detail += " (Account: destination)"
         raise exception
 
-    async with in_transaction() as conn:
+    async with in_transaction():
         operation = await Operation.create(
             type_operation=TypeOperation.VIREMENT,
             compte_source=account,
@@ -160,8 +160,10 @@ async def create_virement(
 @router.get("/tovalidate")
 async def list_operations_to_validate(user: CurrentUser):
     user.can_authorize()
-    virements = await Operation.filter(decision=None)
-    return virements
+    virements = await Operation.filter(decision=None).prefetch_related(
+        "compte_source", "compte_destination"
+    )
+    return [virement.__dict__ for virement in virements]
 
 
 class AuthorizeOperationPayload(pydantic.BaseModel):
@@ -174,7 +176,7 @@ async def validate_operation(
 ):
     user.can_authorize()
 
-    operation = await Operation.filter(id=id).first().prefetch_related("decision")
+    operation = await Operation.get_or_none(id=id).prefetch_related("decision")
     if not operation:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
@@ -186,7 +188,7 @@ async def validate_operation(
             detail="Operation already validated",
         )
 
-    async with in_transaction() as conn:
+    async with in_transaction():
         await Decision.create(operation=operation, valide=payload.authorize, agent=user)
         operation.processed = True
         await operation.save()
