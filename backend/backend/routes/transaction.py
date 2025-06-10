@@ -157,7 +157,6 @@ async def create_virement(
     return operation
 
 
-@router.get("/tovalidate", response_model=list[pydantic_model_creator(Operation)])
 @router.get("/tovalidate")
 async def list_operations_to_validate(user: CurrentUser):
     user.can_authorize()
