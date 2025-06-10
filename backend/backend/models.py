@@ -182,13 +182,11 @@ async def update_operation(
         await instance.fetch_related("operation")
 
     if instance.operation.type_operation == TypeOperation.DEPOT or not instance.valide:
-        print("Well, that is it!")
         return
 
     await instance.operation.fetch_related("compte_source", "compte_destination")
     source = instance.operation.compte_source
     destination = instance.operation.compte_destination
-    print("J'aime l'argent !")
 
     async with in_transaction():
         if source:
