@@ -14,9 +14,13 @@ urlpatterns = [
     path('clients/logout', clients.logout, name='logout_client'),
 
     path('clients/deposit', clients.account_deposite, name='deposit_client'),
+    path('client/withdraw', clients.account_withdraw, name='withdraw_client'),
     
     # Banquier URLs
     path('banquier/dashboard', banquier.manager_dashboard, name='dashboard_manager'),
+    path('banquier/process_transaction', banquier.process_transaction, name='process_transaction'),
+
+
     path('banquier/logout', banquier.logout, name='logout_banquier'),
 
     # API URLs
@@ -27,6 +31,11 @@ urlpatterns = [
     path('api/connect_banquier', api.connect_banquier, name='connect_banquier'),
 
     path('api/deposit', api.deposite_account, name='deposit_account'),
+    path('api/withdraw', api.withdraw_account, name='withdraw_account'),
+
+    path('api/validate_transaction', api.process_transaction, name='process_transaction_api'),
+
+    path('api/transactions', api.get_transactions, name='get_transactions'),
     
 
     # Add more URL patterns here as needed

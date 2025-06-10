@@ -189,3 +189,58 @@ def account_deposite(request):
     else:
         messages.error(request, "Veuillez vous connecter d'abord.")
         return redirect('/auth/clients')
+
+
+def account_withdraw(request):
+    if request.method == "POST":
+        compte_id = request.POST.get('compte')
+        montant = request.POST.get('montant')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if compte_id and montant:
+            print("Tentative de retrait du compte :", compte_id, "Montant :", montant)  # Pour debug
+            response = requests.post(f"{DJANGO_HOST}/api/withdraw", data={
+                'compte_id': compte_id,
+                'montant': montant,
+                'username': username,
+                'password': password
+            })
+
+            if response.ok:
+                data = response.json()
+                print("Retrait réussi :", data)
+                messages.success(request, f"Retrait de {montant}€ du compte {compte_id} en attente de validation.")
+            else:
+                try:
+                    error_msg = response.json().get('error', 'Erreur inconnue')
+                except Exception as e:
+                    print("Erreur JSON :", e)
+                    error_msg = response.text
+                messages.error(request, f"Échec du retrait : {error_msg}")
+            return redirect('/clients/dashboard')
+    #         
+    #         if response.ok:
+    #             data = response.json()
+    #             print("Retrait réussi :", data)
+    #             messages.success(request, f"Retrait de {montant}€ du compte {compte_id} réussi.")
+    #         else:
+    #             try:
+    #                 error_msg = response.json().get('error', 'Erreur inconnue')
+    #             except Exception as e:
+    #                 print("Erreur JSON :", e)
+    #                 error_msg = response.text
+    #             messages.error(request, f"Échec du retrait : {error_msg}")
+    #         return redirect('/clients/dashboard')  # Redirection après le retrait
+    #     else:
+    #         messages.error(request, "Veuillez fournir un identifiant de compte et un montant.")
+    #         return redirect('/clients/dashboard')
+    # else:
+    #     messages.error(request, "Veuillez vous connecter d'abord.")
+    #     return redirect('/auth/clients')
+        else:
+            messages.error(request, "Veuillez fournir un identifiant de compte et un montant.")
+            return redirect('/clients/dashboard')
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')

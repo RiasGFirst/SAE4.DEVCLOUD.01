@@ -16,6 +16,14 @@
         <h2>Bienvenue, {{ nom_manager }} !</h2>
         <p>Liste des transactions à approuver :</p>
 
+        {% if messages %}
+            <ul class="messages">
+                {% for message in messages %}
+                    <li class="{{ message.tags }}">{{ message }}</li>
+                {% endfor %}
+            </ul>
+        {% endif %}
+
         {% for transaction in transactions %}
         <div class="transaction-item">
             <strong>{{ transaction.type }}</strong> - {{ transaction.date }}<br>
@@ -23,11 +31,15 @@
             De : {{ transaction.expediteur }} {% if transaction.beneficiaire %}→ À : {{ transaction.beneficiaire }}{% endif %}
 
             <div class="action-buttons">
-                <form method="post" action="#">
+                <form method="post" action="{% url 'process_transaction' %}">
+                    <input type="hidden" name="transaction_id" value="{{ transaction.id }}">
+                    <input type="hidden" name="action" value="validate">
                     {% csrf_token %}
                     <button type="submit" class="btn">Valider</button>
                 </form>
-                <form method="post" action="#">
+                <form method="post" action="{% url 'process_transaction' %}">
+                    <input type="hidden" name="transaction_id" value="{{ transaction.id }}">
+                    <input type="hidden" name="action" value="refuse">
                     {% csrf_token %}
                     <button type="submit" class="btn refus">Refuser</button>
                 </form>
