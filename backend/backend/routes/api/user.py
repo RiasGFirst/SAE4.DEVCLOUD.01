@@ -42,7 +42,12 @@ async def create_user(payload: CreateUserPayload):
             role=payload.role,
         )
         if user.role == TypeUtilisateur.USER:
-            compte = await Compte.create(utilisateur=user, type_compte=TypeCompte.COURANT, solde=0, validated=True)
+            compte = await Compte.create(
+                utilisateur=user,
+                type_compte=TypeCompte.COURANT,
+                solde=0,
+                validated=True,
+            )
         else:
             compte = None
         return {"user": user, "account": compte}

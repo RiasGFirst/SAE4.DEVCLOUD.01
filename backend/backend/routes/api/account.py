@@ -4,9 +4,10 @@ import pydantic
 from fastapi import APIRouter, HTTPException, Response, status
 from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.exceptions import IntegrityError
+from yaml import compose
 
 from backend.auth import CurrentUser
-from backend.models import Compte, DepotPydantic, RetraitPydantic, TypeCompte, VirementPydantic
+from backend.models import Compte, Operation, TypeCompte, ValidationCompte
 
 router = APIRouter()
 
@@ -22,7 +23,8 @@ async def list_accounts(user: CurrentUser):
 async def list_accounts_to_validate(user: CurrentUser):
     """Liste tous les comptes utilisateurs à valider."""
     user.can_authorize()
-    accounts = await Compte.filter(utilisateur=user, validated=False)
+    # Fetch all accounts that have no records in ValidationCompte table
+    accounts = await Compte.filter(validations=None)
     return accounts
 
 
@@ -35,7 +37,12 @@ class CreateAccountPayload(pydantic.BaseModel):
 
 @router.post("/", response_model=pydantic_model_creator(Compte))
 async def create_account(user: CurrentUser, payload: CreateAccountPayload):
-    """Crée un nouveeau compte en fonction des paramètres donnés."""
+    """Crée un nouveeau compte en fonction des paramètres donnés.
+
+    Le type de compte permet de savoir si nous créons un compte courant, ou un livret.
+
+    Demander l'ouverture d'un compte requiert la validation d'un agent bancaire.
+    """
     try:
         account = await Compte.create(
             utilisateur=user,
@@ -53,32 +60,45 @@ class GetAccountResponse(pydantic.BaseModel):
     """Modèle de réponse pour la récupération d'un compte utilisateur."""
 
     account: Annotated[Compte, pydantic_model_creator(Compte)]
-    operations: list[RetraitPydantic | DepotPydantic | VirementPydantic]
+    operations: list[Annotated[Operation, pydantic_model_creator(Operation)]]
+    validation: Annotated[ValidationCompte, pydantic_model_creator(ValidationCompte)] | None
 
 
 @router.get("/{account_id}", response_model=GetAccountResponse)
 async def get_account(account_id: int, user: CurrentUser):
-    """Récupère un compte utilisateur spécifique."""
+    """Récupère un compte utilisateur spécifique.
+
+    Retourne une liste d'information avec le compte, ses opérations, et son status de validation.
+
+    Si la validation est "null", la validation n'a pas encore eu lieu.
+    """
     account = await Compte.get_user_account(account_id, user)
+    validation = await ValidationCompte.filter(compte=account).get_or_none()
 
     return {
         "account": account,
-        "operations": await account.get_all_operations(),
+        "operations": await account.get_all_operations(True),
+        "validation": validation,
     }
 
 
 class AuthorizeAccountPayload(pydantic.BaseModel):
     """Payload pour la validation d'un compte."""
+
     authorize: bool
 
 
-@router.post("/{account_id}/approval", response_model=pydantic_model_creator(Compte))
-async def authorize_account(account_id: int, user: CurrentUser, payload: AuthorizeAccountPayload):
+@router.post("/{account_id}/approval")
+async def authorize_account(
+    account_id: int, user: CurrentUser, payload: AuthorizeAccountPayload
+):
     user.can_authorize()
 
-    account = await Compte.get_user_account(account_id, user)
-    account.validated = payload.authorize
-    await account.save()
+    account = await Compte.filter(id=account_id).get_or_none()
+    if not account:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Account not found")
+
+    await ValidationCompte.create(compte=account, valide=payload.authorize, agent=user)
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
