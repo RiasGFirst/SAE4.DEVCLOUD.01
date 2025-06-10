@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 
-from backend.routes.api import account, transaction, user
+from backend.routes import account, transaction, user
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(user.router, prefix="/user", tags=["User"])

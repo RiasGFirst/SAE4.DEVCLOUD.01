@@ -4,7 +4,6 @@ import pydantic
 from fastapi import APIRouter, HTTPException, Response, status
 from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.exceptions import IntegrityError
-from yaml import compose
 
 from backend.auth import CurrentUser
 from backend.models import Compte, Operation, TypeCompte, ValidationCompte

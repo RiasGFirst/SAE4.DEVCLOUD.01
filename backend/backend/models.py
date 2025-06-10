@@ -24,7 +24,7 @@ class Utilisateur(Model):
     role = fields.CharEnumField(TypeUtilisateur, default=TypeUtilisateur.USER)
     date_creation = fields.DatetimeField(auto_now_add=True)
 
-    comptes = fields.ReverseRelation["Compte"]
+    comptes: fields.ReverseRelation["Compte"]
 
     def verify_password(self, password: str) -> bool:
         """
@@ -148,13 +148,11 @@ class Operation(Model):
         return await cls.filter(decision=None)
 
     @classmethod
-    async def filter_by_account(
-        cls, compte: "Compte", prefetch_decisions: bool = False
-    ) -> typing.Iterable[typing.Self]:
+    def filter_by_account(cls, compte: "Compte", prefetch_decisions: bool = False):
         op = cls.filter(Q(compte_source=compte) | Q(compte_destination=compte))
         if prefetch_decisions:
-            return await op.prefetch_related("decision")
-        return await op
+            return op.prefetch_related("decision")
+        return op
 
 
 class Decision(Model):
@@ -192,7 +190,7 @@ async def update_operation(
     destination = instance.operation.compte_destination
     print("J'aime l'argent !")
 
-    async with in_transaction() as conn:
+    async with in_transaction():
         if source:
             source.solde += instance.operation.montant
             await source.save()
