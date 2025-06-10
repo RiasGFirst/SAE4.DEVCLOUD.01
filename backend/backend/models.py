@@ -106,7 +106,7 @@ class ValidationCompte(Model):
     id = fields.IntField(primary_key=True, unique=True)
     valide = fields.BooleanField(default=False)
     compte: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField("models.Compte", related_name="validation")
-    agent: fields.ForeignKeyRelation["Utilisateur"] = fields.ForeignKeyField("models.Utilisateur", related_name="validation_agent")
+    agent: fields.ForeignKeyNullableRelation["Utilisateur"] = fields.ForeignKeyField("models.Utilisateur", related_name="validation_agent", null=True)
     date_validation = fields.DatetimeField(auto_now_add=True)
 
 

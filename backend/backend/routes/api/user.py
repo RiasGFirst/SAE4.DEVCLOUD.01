@@ -5,7 +5,7 @@ from tortoise.contrib.pydantic import pydantic_model_creator
 from tortoise.exceptions import IntegrityError
 
 from backend.auth import CurrentUser
-from backend.models import Compte, TypeCompte, TypeUtilisateur, Utilisateur
+from backend.models import Compte, TypeCompte, TypeUtilisateur, Utilisateur, ValidationCompte
 
 router = APIRouter()
 
@@ -46,8 +46,8 @@ async def create_user(payload: CreateUserPayload):
                 utilisateur=user,
                 type_compte=TypeCompte.COURANT,
                 solde=0,
-                validated=True,
             )
+            await ValidationCompte.create(compte=compte, valide=True, agent=None)
         else:
             compte = None
         return {"user": user, "account": compte}
