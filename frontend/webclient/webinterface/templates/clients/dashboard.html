@@ -63,7 +63,7 @@
                         <option value="{{ compte.numero }}">{{ compte.type }} (Solde: {{ compte.solde }} €)</option>
                         {% endfor %}
                     </select>
-                    <input type="number" name="montant" placeholder="Montant" required>
+                    <input type="number" step="0.01" name="montant" placeholder="Montant" required>
                     <button type="submit" class="btn">Déposer</button>
                 </form>
 
