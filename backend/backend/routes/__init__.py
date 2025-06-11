@@ -1,9 +1,8 @@
 from fastapi import APIRouter
+from tortoise.contrib.pydantic import pydantic_model_creator
 
 from backend.models import Log
 from backend.routes import account, transaction, user
-
-from tortoise.contrib.pydantic import pydantic_model_creator
 
 api_router = APIRouter(prefix="/api")
 api_router.include_router(user.router, prefix="/user", tags=["User"])
