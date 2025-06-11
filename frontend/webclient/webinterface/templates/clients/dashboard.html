@@ -45,7 +45,7 @@
             </div>
 
             <div class="operations">
-                <form method="post" action="#" class="inline-form">
+                <form method="post" action="{% url 'create_account_client' %}" class="inline-form">
                     {% csrf_token %}
                     <select name="type_compte" required>
                         <option value="">-- Choisir un type de compte --</option>

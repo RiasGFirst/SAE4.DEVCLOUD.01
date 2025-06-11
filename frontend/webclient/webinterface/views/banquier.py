@@ -75,17 +75,17 @@ def manager_dashboard(request):
             return render(request, 'banquier/dashboard.html', {'transactions': [], 'nom_manager': request.COOKIES.get('buser', 'Manager inconnu')})
         
         else:
-        # [{'processed': False, 'compte_source_id': 1, 'type_operation': 'retrait', 'compte_destination_id': None, 'date_creation': '2025-06-10T12:58:35.139341+00:00', 'id': 3, 'montant': -0.69}]
-
+        #[{'_partial': False, '_custom_generated_pk': False, '_await_when_save': {}, 'id': 2, 'compte_source_id': 1, 'compte_destination_id': None, 'montant': -1.0, 'processed': False, 'date_creation': '2025-06-10T14:32:07.883951+00:00', 'type_operation': 'retrait', '_compte_destination': None, '_compte_source': {'solde': 10.0, 'date_creation': '2025-06-10T14:31:49.117655+00:00', 'type_compte': 'compte_courant', 'id': 1, 'utilisateur_id': 2, 'iban': 'FR641009607484RDAGLR8O6KZ71'}}]
             for transaction in transactions_data:
                 transaction['date_creation'] = transaction['date_creation'].split('T')[0]
                 transaction['montant'] = abs(transaction['montant'])  # Assure que le montant est positif
+
             transactions = [
                 {
-                    'id': transaction['id'],
+                    'id': transaction['id'], #
                     'type': transaction['type_operation'].capitalize(),
-                    'expediteur': transaction.get('compte_source_id') or 'Inconnu',
-                    'beneficiaire': transaction.get('compte_destination_id') or 'Inconnu',
+                    'expediteur': transaction.get('_compte_source', {}).get('iban', 'Inconnu') or 'Inconnu', # IBAN de l'expéditeur
+                    'beneficiaire': transaction.get('_compte_destination', {}).get('iban', 'Inconnu') or 'Inconnu' if transaction.get('_compte_destination') else None,  # IBAN du bénéficiaire
                     'montant': transaction['montant'],
                     'date': transaction['date_creation']
                 } for transaction in transactions_data

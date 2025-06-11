@@ -265,11 +265,43 @@ def process_transaction(request):
         print("Method not allowed for processing transaction.")
         return JsonResponse({"error": "Method not allowed"}, status=405)
     
-"""
-{
-  "nom": "string",
-  "email": "string",
-  "mot_de_passe": "string",
-  "role": "utiisateur"
-}
-"""
+
+@csrf_exempt
+def account_creation(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        type_compte = request.POST.get('compte_type')
+
+        if not username or not password or not type_compte:
+            print("Username, password, or account type not provided.")
+            return JsonResponse({"error": "Username, password, or account type not provided"}, status=400)
+        
+        #type_compte = courrant, livret et type: 'compte_courant', 'livret'
+        if type_compte == 'courant':
+            type = 'compte_courant'
+        elif type_compte == 'livret':
+            type = 'livret'
+        else:
+            print("Invalid account type provided.")
+            return JsonResponse({"error": "Invalid account type provided"}, status=400)
+        
+        data = {
+            'type': type,
+            'solde_initial': 0
+        }
+
+        response = requests.post(f"{API_HOST}/api/account",
+                                 json=data,
+                                 auth=(username, password),
+                                 headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            print("Account created successfully:", data)
+            return JsonResponse(data, status=201)
+        else:
+            print("Account creation failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
