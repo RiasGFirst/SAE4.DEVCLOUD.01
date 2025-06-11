@@ -11,7 +11,7 @@ services:
       context: ./backend
       dockerfile: Dockerfile
     ports:
-      - "8001:8000"
+      - "127.0.0.1:8001:8000"
     environment:
       - DB_URL=mysql://$MYSQL_USER:$MYSQL_PASSWORD@db:3306/$MYSQL_DATABASE
     depends_on:
@@ -38,6 +38,8 @@ services:
       MYSQL_USER: $MYSQL_USER
       MYSQL_PASSWORD: $MYSQL_PASSWORD
       MYSQL_DATABASE: $MYSQL_DATABASE
+    ports:
+      - "127.0.0.1:3306:3306"
     networks:
       - internals
     volumes:
