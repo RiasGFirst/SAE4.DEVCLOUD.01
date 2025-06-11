@@ -46,10 +46,10 @@
             </div>
         </div>
         {% empty %}
-        <p>Aucune transaction en attente.</p>
         {% endfor %}
 
         {% for account in accounts_pending %}
+        <p>{{account.id}}</p>
         <div class="transaction-item">
             <strong>{{ account.type_compte }}</strong> - {{ account.date_creation }}<br>
             IBAN : {{ account.iban }}<br>
@@ -57,13 +57,13 @@
 
             <div class="action-buttons">
                 <form method="post" action="{% url 'process_account' %}">
-                    <input type="hidden" name="compte_id" value="{{ account.id }}">
+                    <input type="hidden" name="account_id" value="{{ account.id }}">
                     <input type="hidden" name="action" value="validate">
                     {% csrf_token %}
                     <button type="submit" class="btn">Valider</button>
                 </form>
                 <form method="post" action="{% url 'process_account' %}">
-                    <input type="hidden" name="compte_id" value="{{ account.id }}">
+                    <input type="hidden" name="account_id" value="{{ account.id }}">
                     <input type="hidden" name="action" value="refuse">
                     {% csrf_token %}
                     <button type="submit" class="btn refus">Refuser</button>
@@ -71,7 +71,6 @@
             </div>
         </div>
         {% empty %}
-        <p>Aucune demande de compte en attente.</p>
         {% endfor %}
     </div>
 </body>

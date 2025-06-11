@@ -360,22 +360,28 @@ def process_account(request):
             "authorize": action == 'validate'
         }
 
-    #     response = requests.post(f"{API_HOST}/api/account/validate/{account_id}",
-    #                              json=data,
-    #                              auth=(username, password),
-    #                              headers={'Content-Type': 'application/json'})
+        response = requests.post(f"{API_HOST}/api/account/{account_id}/approval",
+                                 json=data,
+                                 auth=(username, password),
+                                 headers={'Content-Type': 'application/json'})
         
-    #     if response.ok:
-    #         data = response.json()
-    #         print("Account processed successfully:", data)
-    #         if action == 'validate':
-    #             print(f"Account {account_id} validated successfully.")
-    #         else:
-    #             print(f"Account {account_id} refused successfully.")
-    #         return JsonResponse(data, status=200)
-    #     else:
-    #         print("Account processing failed:", response.status_code, response.text)
-    #         return JsonResponse(response.json(), status=response.status_code)
+        if response.ok:
+            if response.status_code == 204:
+            # No content returned, just a success status
+                print("Account processed successfully with no content returned.")
+                data = {"message": "Account processed successfully"}
+                return JsonResponse(data, status=204)
+
+            data_r = response.json()
+            print("Account processed successfully:", data)
+            if action == 'validate':
+                print(f"Account {account_id} validated successfully.")
+            else:
+                print(f"Account {account_id} refused successfully.")
+            return JsonResponse(data_r, status=200, safe=False)
+        else:
+            print("Account processing failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
     else:
         print("Method not allowed for processing account.")
         return JsonResponse({"error": "Method not allowed"}, status=405)
