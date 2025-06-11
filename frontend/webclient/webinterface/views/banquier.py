@@ -79,12 +79,13 @@ def manager_dashboard(request):
         transactions_data = response1.json()
         accounts_pending_data = response2.json()
         print("Accounts pending data:", accounts_pending_data)
+        # Accounts pending data: [{'id': 2, 'iban': 'FR031910608871VRY6QT6NFHE23', 'type_compte': 'livret', 'solde': '0.00', 'date_creation': '2025-06-11T09:02:16.746332Z'}]
 
         print("Transactions data:", transactions_data)
 
         # verification que la liste na pas le "error"
-        if isinstance(transactions_data, dict) and 'error' in transactions_data:
-            return render(request, 'banquier/dashboard.html', {'transactions': [], 'nom_manager': request.COOKIES.get('buser', 'Manager inconnu')})
+        if isinstance(transactions_data, dict) and 'error' in transactions_data and isinstance(accounts_pending_data, dict) and 'error' in accounts_pending_data:
+            return render(request, 'banquier/dashboard.html', {'transactions': [], 'accounts_pending':[], 'nom_manager': request.COOKIES.get('buser', 'Manager inconnu')})
         
         else:
         #[{'_partial': False, '_custom_generated_pk': False, '_await_when_save': {}, 'id': 2, 'compte_source_id': 1, 'compte_destination_id': None, 'montant': -1.0, 'processed': False, 'date_creation': '2025-06-10T14:32:07.883951+00:00', 'type_operation': 'retrait', '_compte_destination': None, '_compte_source': {'solde': 10.0, 'date_creation': '2025-06-10T14:31:49.117655+00:00', 'type_compte': 'compte_courant', 'id': 1, 'utilisateur_id': 2, 'iban': 'FR641009607484RDAGLR8O6KZ71'}}]
@@ -103,48 +104,40 @@ def manager_dashboard(request):
                 } for transaction in transactions_data
             ]
             print("Processed transactions:", transactions)
+
+            # Traite les comptes en attente de validation
+            for account in accounts_pending_data:
+                account['date_creation'] = account['date_creation'].split('T')[0]
+
+            accounts_pending = [
+                {
+                    'id': account['id'],
+                    'iban': account['iban'],
+                    'type_compte': account['type_compte'].capitalize(),  # Met le type de compte en majuscule
+                    'solde': float(account['solde']),
+                    'date_creation': account['date_creation'].split('T')[0]  # Formate la date
+                } for account in accounts_pending_data
+            ]
+            print("Accounts pending:", accounts_pending)
+            # Prépare le contexte pour le rendu du template
             context = {
                 'transactions': transactions,
-                'accounts_pending': [],  # Liste des comptes en attente de validation
+                'accounts_pending': accounts_pending,  # Liste des comptes en attente de validation
                 'nom_manager': request.COOKIES.get('buser', 'Manager inconnu'),
             }
 
             return render(request, 'banquier/dashboard.html', context)
     else:
         print("Failed to fetch transactions:", response1.status_code, response1.text)
-        messages.error(request, "Échec de la récupération des transactions.")
-
-    # transactions = [
-    #     {
-    #         'id': 1,
-    #         'type': 'Virement',
-    #         'expediteur': 'Jean Dupont',
-    #         'beneficiaire': 'Marie Durand',
-    #         'montant': 250.00,
-    #         'date': '2025-06-01'
-    #     },
-    #     {
-    #         'id': 2,
-    #         'type': 'Retrait',
-    #         'expediteur': 'Sophie Martin',
-    #         'beneficiaire': None,
-    #         'montant': 100.00,
-    #         'date': '2025-06-02'
-    #     },
-    #     {
-    #         'id': 3,
-    #         'type': 'Virement',
-    #         'expediteur': 'Paul Morel',
-    #         'beneficiaire': 'Lucie Leroy',
-    #         'montant': 400.00,
-    #         'date': '2025-06-03'
-    #     }
-    # ]
+        print("Failed to fetch accounts pending:", response2.status_code, response2.text)
+        messages.error(request, "Échec de la récupération des transactions ou des comptes en attente.")
 
     transactions = []
+    accounts_pending_data = []
 
     context = {
         'transactions': transactions,
+        'accounts_pending': accounts_pending_data,  # Liste des comptes en attente de validation
         'nom_manager': request.COOKIES.get('buser', 'Manager inconnu'),
     }
 
@@ -157,11 +150,6 @@ def process_transaction(request):
         action = request.POST.get('action')  # 'valider' or 'refuser'
         busername = request.COOKIES.get('busername')
         bpassword = request.COOKIES.get('bpassword')
-
-        print("busername:", busername)
-        print("bpassword:", bpassword)
-        print("transaction_id:", transaction_id)
-        print("action:", action)
 
         if transaction_id and action:
             print(f"Processing transaction {transaction_id} with action {action}")
@@ -183,6 +171,44 @@ def process_transaction(request):
             return redirect('dashboard_manager')
         else:
             messages.error(request, "Transaction ID ou action non fournis.")
+            return redirect('dashboard_manager')
+    else:
+        messages.error(request, "Méthode non autorisée.")
+        return redirect('dashboard_manager')
+    
+
+def process_account(request):
+    if request.method == 'POST':
+        account_id = request.POST.get('account_id')
+        action = request.POST.get('action')  # 'valider' or 'refuser'
+        busername = request.COOKIES.get('busername')
+        bpassword = request.COOKIES.get('bpassword')
+
+        print("busername:", busername)
+        print("bpassword:", bpassword)
+        print("account_id:", account_id)
+        print("action:", action)
+
+        if account_id and action:
+            print(f"Processing account {account_id} with action {action}")
+
+            response = requests.post(f"{DJANGO_HOST}/api/validate_account",
+                                    data={
+                                        'account_id': account_id,
+                                        'action': action,
+                                        'busername': busername,
+                                        'bpassword': bpassword
+                                    })
+            if response.ok:
+                data = response.json()
+                print("Account processed successfully:", data)
+                if action == 'validate':
+                    messages.success(request, f"Compte {account_id} validé avec succès.")
+                else:
+                    messages.success(request, f"Compte {account_id} refusé avec succès.")
+            return redirect('dashboard_manager')
+        else:
+            messages.error(request, "Account ID ou action non fournis.")
             return redirect('dashboard_manager')
     else:
         messages.error(request, "Méthode non autorisée.")

@@ -327,11 +327,55 @@ def get_accounts_pending(request):
             data = response.json()
             if not data:
                 print("No pending accounts found.")
-                return JsonResponse({"error": "No pending accounts found"}, status=404)
+                return JsonResponse({"error": "No pending accounts found"}, status=201)
             print("Pending accounts retrieved successfully:", data)
             return JsonResponse(data, safe=False)
         else:
             print("Failed to retrieve pending accounts:", response.status_code, response.text)
             return JsonResponse({"error": "Failed to retrieve pending accounts"}, status=response.status_code)
     else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+
+@csrf_exempt
+def process_account(request):
+    if request.method == 'POST':
+        account_id = request.POST.get('account_id')
+        action = request.POST.get('action')
+        username = request.POST.get('busername')
+        password = request.POST.get('bpassword')
+
+        if not account_id or not action:
+            print("Account ID or action not provided.")
+            return JsonResponse({"error": "Account ID or action not provided"}, status=400)
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+        
+        if action not in ['validate', 'refuse']:
+            print("Invalid action provided.")
+            return JsonResponse({"error": "Invalid action provided"}, status=400)
+        
+        data = {
+            "authorize": action == 'validate'
+        }
+
+    #     response = requests.post(f"{API_HOST}/api/account/validate/{account_id}",
+    #                              json=data,
+    #                              auth=(username, password),
+    #                              headers={'Content-Type': 'application/json'})
+        
+    #     if response.ok:
+    #         data = response.json()
+    #         print("Account processed successfully:", data)
+    #         if action == 'validate':
+    #             print(f"Account {account_id} validated successfully.")
+    #         else:
+    #             print(f"Account {account_id} refused successfully.")
+    #         return JsonResponse(data, status=200)
+    #     else:
+    #         print("Account processing failed:", response.status_code, response.text)
+    #         return JsonResponse(response.json(), status=response.status_code)
+    else:
+        print("Method not allowed for processing account.")
         return JsonResponse({"error": "Method not allowed"}, status=405)

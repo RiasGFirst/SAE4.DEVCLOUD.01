@@ -20,6 +20,7 @@ urlpatterns = [
     # Banquier URLs
     path('banquier/dashboard', banquier.manager_dashboard, name='dashboard_manager'),
     path('banquier/process_transaction', banquier.process_transaction, name='process_transaction'),
+    path('banquier/process_account', banquier.process_account, name='process_account'),
 
 
     path('banquier/logout', banquier.logout, name='logout_banquier'),
@@ -39,6 +40,8 @@ urlpatterns = [
 
     path('api/transactions', api.get_transactions, name='get_transactions'),
     path('api/accounts_pending', api.get_accounts_pending, name='get_accounts_pending'),
+
+    path('api/validate_account', api.process_account, name='process_account_api'),
     
 
     # Add more URL patterns here as needed
