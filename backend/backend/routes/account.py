@@ -18,7 +18,7 @@ class ListAccountsResponse(pydantic.BaseModel):
     )
 
 
-@router.get("/", response_model=list[ListAccountsResponse])
+@router.get("", response_model=list[ListAccountsResponse])
 async def list_accounts(user: CurrentUser):
     """Liste tous les comptes utilisateurs créés."""
     accounts = await Compte.filter(utilisateur=user)
@@ -51,7 +51,7 @@ class CreateAccountPayload(pydantic.BaseModel):
     solde_initial: float = 0.0
 
 
-@router.post("/", response_model=pydantic_model_creator(Compte))
+@router.post("", response_model=pydantic_model_creator(Compte))
 async def create_account(user: CurrentUser, payload: CreateAccountPayload):
     """Crée un nouveeau compte en fonction des paramètres donnés.
 

@@ -18,7 +18,7 @@ from backend.models import (
 router = APIRouter()
 
 
-@router.get("/", response_model=list[pydantic_model_creator(Utilisateur)])
+@router.get("", response_model=list[pydantic_model_creator(Utilisateur)])
 async def list_users():
     """Liste tous les utilisateurs créés."""
     users = await Utilisateur.all()
@@ -39,7 +39,7 @@ class CreateUserResponse(pydantic.BaseModel):
     account: Annotated[Compte, pydantic_model_creator(Compte)] | None
 
 
-@router.post("/", response_model=CreateUserResponse)
+@router.post("", response_model=CreateUserResponse)
 async def create_user(payload: CreateUserPayload):
     """Crée un nouveeau utilisateur en fonction des paramètres donnés."""
     try:

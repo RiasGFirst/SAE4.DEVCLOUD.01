@@ -80,6 +80,14 @@ class Compte(Model):
 
     date_creation = fields.DatetimeField(auto_now_add=True)
 
+    async def get_allowed_balance(self) -> float:
+        """Obtiens le solde autorisé en prenant en compte les transactions non traitées."""
+        current = self.solde
+        transactions = await Operation.filter_by_account(self).filter(processed=False)
+        for transaction in transactions:
+            current += transaction.montant
+        return float(current)
+
     async def ensure_validated(self) -> typing.Literal[True]:
         validation = await ValidationCompte.filter(compte=self).get_or_none()
         if not validation:
