@@ -143,3 +143,13 @@ p {
     color: #ffa500;
     font-style: italic;
 }
+
+.status.validated {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.status.refused {
+    color: #dc3545;
+    font-weight: bold;
+}

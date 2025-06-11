@@ -100,8 +100,26 @@ def dashboard_client(request):
         comptes_data = response.json()
         print("Comptes récupérés :", comptes_data)  # Pour debug
         comptes = []
-        for compte in comptes_data:
-            compte_type = compte.get('type_compte', 'N/A')  # Assurez-vous que le type de compte est défini
+        for compte_data in comptes_data:
+            print("Traitement du compte :", compte_data)  # Pour debug
+
+            compte = compte_data.get('account', {}) or {}
+            validation = compte_data.get('validation', {}) or {}
+            print("Données du compte :", compte)  # Pour debug
+            print("Données de validation :", validation)  # Pour debug
+
+            # {'account': {'id': 1, 'iban': 'FR613000114830X17RFZ0BNHL69', 'type_compte': 'compte_courant', 'solde': '0.00', 'date_creation': '2025-06-11T08:07:39.218195Z'}, 
+            # 'validation': {'id': 1, 'valide': True, 'date_validation': '2025-06-11T08:07:39.220447Z'}} or None or 'valide': False
+
+            if validation == {}:
+                pending = True
+                validated = False  # Si pas de validation, on considère que le compte est en attente
+            else:
+                pending = False
+                validated = validation.get('valide')  # Assurez-vous que le champ validé est défini
+            #validated = validation.get('valide') or False  # Assurez-vous que le champ validé est défini
+
+            compte_type = compte.get('type_compte')  # Assurez-vous que le type de compte est défini
             comptes_type = {
                 'compte_courant': 'Compte courant',
                 'livret': 'Livret A',
@@ -111,7 +129,10 @@ def dashboard_client(request):
             compte['numero'] = compte.get('id', 'N/A')
             compte['iban'] = compte.get('iban', 'N/A')  # Assurez-vous que l'IBAN est défini
             compte['solde'] = float(compte.get('solde', 0.0))  # Assurez-vous que le solde est un float
-            compte['validated'] = compte.get('validated', False)  # Assurez-vous que le champ validé est défini
+            compte['validated'] = validated  # Assurez-vous que le champ validé est défini
+            compte['pending'] = pending  # Assurez-vous que le champ en attente est défini
+
+            print("Compte traité :", compte)  # Pour debug
             comptes.append(compte)
         # Si les comptes sont récupérés avec succès, on les passe au template
         return render(request, 'clients/dashboard.html', {

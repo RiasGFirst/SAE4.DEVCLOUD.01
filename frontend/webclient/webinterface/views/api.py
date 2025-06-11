@@ -305,3 +305,33 @@ def account_creation(request):
             return JsonResponse(response.json(), status=response.status_code)
     else:
         return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_accounts_pending(request):
+    if request.method == 'POST':
+        username = request.POST.get('busername')
+        password = request.POST.get('bpassword')
+
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+        
+        print("Fetching pending accounts for the dashboard:", username)
+        
+        response = requests.get(f"{API_HOST}/api/account/tovalidate",
+                                auth=(username, password),
+                                headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            if not data:
+                print("No pending accounts found.")
+                return JsonResponse({"error": "No pending accounts found"}, status=404)
+            print("Pending accounts retrieved successfully:", data)
+            return JsonResponse(data, safe=False)
+        else:
+            print("Failed to retrieve pending accounts:", response.status_code, response.text)
+            return JsonResponse({"error": "Failed to retrieve pending accounts"}, status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)

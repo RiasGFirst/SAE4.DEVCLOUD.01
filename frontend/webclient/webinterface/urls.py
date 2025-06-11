@@ -38,6 +38,7 @@ urlpatterns = [
     path('api/validate_transaction', api.process_transaction, name='process_transaction_api'),
 
     path('api/transactions', api.get_transactions, name='get_transactions'),
+    path('api/accounts_pending', api.get_accounts_pending, name='get_accounts_pending'),
     
 
     # Add more URL patterns here as needed

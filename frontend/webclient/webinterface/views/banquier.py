@@ -58,15 +58,27 @@ def manager_dashboard(request):
     if not request.COOKIES.get('busername') or not request.COOKIES.get('bpassword'):
         messages.error(request, "Vous devez vous connecter pour accéder au tableau de bord.")
         return redirect('auth_banquier_page')
+    
+    busername = request.COOKIES.get('busername')
+    bpassword = request.COOKIES.get('bpassword')
+
     # Liste simulée de transactions
-    response = requests.post(f"{DJANGO_HOST}/api/transactions", data={
-        'busername': request.COOKIES.get('busername'),
-        'bpassword': request.COOKIES.get('bpassword')
+    response1 = requests.post(f"{DJANGO_HOST}/api/transactions", data={
+        'busername': busername,
+        'bpassword': bpassword
     })
 
-    if response.ok:
-        transactions_data = response.json()
-        
+    # Liste des comptes en attente de validation
+    response2 = requests.post(f"{DJANGO_HOST}/api/accounts_pending", data={
+        'busername': busername,
+        'bpassword': bpassword
+    })
+
+    if response1.ok and response2.ok:
+        print("Fetching transactions and pending accounts...")
+        transactions_data = response1.json()
+        accounts_pending_data = response2.json()
+        print("Accounts pending data:", accounts_pending_data)
 
         print("Transactions data:", transactions_data)
 
@@ -93,12 +105,13 @@ def manager_dashboard(request):
             print("Processed transactions:", transactions)
             context = {
                 'transactions': transactions,
+                'accounts_pending': [],  # Liste des comptes en attente de validation
                 'nom_manager': request.COOKIES.get('buser', 'Manager inconnu'),
             }
 
             return render(request, 'banquier/dashboard.html', context)
     else:
-        print("Failed to fetch transactions:", response.status_code, response.text)
+        print("Failed to fetch transactions:", response1.status_code, response1.text)
         messages.error(request, "Échec de la récupération des transactions.")
 
     # transactions = [
