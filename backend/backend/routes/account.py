@@ -11,11 +11,25 @@ from backend.models import Compte, Operation, TypeCompte, ValidationCompte
 router = APIRouter()
 
 
-@router.get("/", response_model=list[pydantic_model_creator(Compte)])
+class ListAccountsResponse(pydantic.BaseModel):
+    account: Annotated[Compte, pydantic_model_creator(Compte)]
+    validation: Annotated[ValidationCompte, pydantic_model_creator(ValidationCompte)] | None
+
+
+@router.get("/", response_model=list[ListAccountsResponse])
 async def list_accounts(user: CurrentUser):
     """Liste tous les comptes utilisateurs créés."""
     accounts = await Compte.filter(utilisateur=user)
-    return accounts
+    accounts_ids = [str(account.id) for account in accounts]
+    validations = await ValidationCompte.in_bulk(accounts_ids, field_name="compte_id")
+
+    return [
+        ListAccountsResponse(
+            account=account,
+            validation=validations.get(account.id),  # pyright: ignore[reportArgumentType]
+        )
+        for account in accounts
+    ]
 
 
 @router.get("/tovalidate")
