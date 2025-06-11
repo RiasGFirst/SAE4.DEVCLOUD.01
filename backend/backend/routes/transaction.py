@@ -56,7 +56,7 @@ async def create_deposit_operation(
         account.solde += Decimal(payload.montant)
         await account.save()
 
-        return operation
+    return operation
 
 
 @router.post(
@@ -73,8 +73,9 @@ async def create_withdrawal_operation(
 
     account = await Compte.get_user_account(account_id, user)
     await account.ensure_validated()
+    balance = await account.get_allowed_balance()
 
-    if account.solde < payload.montant:
+    if balance < payload.montant:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
         )
@@ -87,7 +88,7 @@ async def create_withdrawal_operation(
             montant=-payload.montant,
         )
         account.solde -= Decimal(payload.montant)
-        return operation
+    return operation
 
 
 class CreateOperationVirementPayload(pydantic.BaseModel):
@@ -129,7 +130,9 @@ async def create_virement(
         exception.detail += " (Account: source)"
         raise exception
 
-    if account.solde < payload.montant:
+    balance = await account.get_allowed_balance()
+
+    if balance < payload.montant:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail="Insufficient balance"
         )
