@@ -13,7 +13,9 @@ router = APIRouter()
 
 class ListAccountsResponse(pydantic.BaseModel):
     account: Annotated[Compte, pydantic_model_creator(Compte)]
-    validation: Annotated[ValidationCompte, pydantic_model_creator(ValidationCompte)] | None
+    validation: (
+        Annotated[ValidationCompte, pydantic_model_creator(ValidationCompte)] | None
+    )
 
 
 @router.get("/", response_model=list[ListAccountsResponse])
@@ -26,7 +28,9 @@ async def list_accounts(user: CurrentUser):
     return [
         ListAccountsResponse(
             account=account,
-            validation=validations.get(account.id),  # pyright: ignore[reportArgumentType]
+            validation=validations.get(
+                account.id
+            ),  # pyright: ignore[reportArgumentType]
         )
         for account in accounts
     ]
