@@ -183,6 +183,44 @@ def get_transactions(request):
         else:
             print("Failed to retrieve transactions:", response.status_code, response.text)
             return JsonResponse({"error": "Failed to retrieve transactions"}, status=response.status_code)
+        
+@csrf_exempt
+def transfer_account(request):
+    if request.method == 'POST':
+
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        compte_debite = request.POST.get('compte_debite')
+        compte_credit = request.POST.get('compte_credit')
+        montant = request.POST.get('montant')
+
+        if not compte_debite or not compte_credit or not montant:
+            print("Account IDs or amount not provided.")
+            return JsonResponse({"error": "Account IDs or amount not provided"}, status=400)
+        
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+
+        data = {
+            'montant': montant,
+            'target': compte_credit
+        }
+
+        response = requests.post(f"{API_HOST}/api/transaction/{compte_debite}/virement",
+                                 json=data,
+                                 auth=(username, password),
+                                 headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            print("Transfer request successful:", data)
+            return JsonResponse(data, status=201)
+        else:
+            print("Transfer request failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
 @csrf_exempt
@@ -224,7 +262,6 @@ def withdraw_account(request):
 @csrf_exempt
 def process_transaction(request):
     if request.method == 'POST':
-        print(request.POST)
         transaction_id = request.POST.get('transaction_id')
         action = request.POST.get('action')
         username = request.POST.get('busername')

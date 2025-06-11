@@ -234,7 +234,7 @@ def account_withdraw(request):
                 messages.success(request, f"Retrait de {montant}€ du compte {compte_id} en attente de validation.")
             else:
                 try:
-                    error_msg = response.json().get('error', 'Erreur inconnue')
+                    error_msg = response.json().get('error') or response.json().get('detail')
                 except Exception as e:
                     print("Erreur JSON :", e)
                     error_msg = response.text
@@ -279,6 +279,46 @@ def account_creation(request):
         else:
             messages.error(request, "Veuillez fournir un type de compte valide.")
             return redirect('/clients/dashboard')
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')
+    
+
+def account_transfert(request):
+    if request.method == "POST":
+        compte_debite = request.POST.get('compte_debite')
+        compte_credit = request.POST.get('compte_credit')
+        montant = request.POST.get('montant')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if not (compte_debite and compte_credit and montant):
+            messages.error(request, "Veuillez fournir les informations nécessaires pour le transfert.")
+            return redirect('/clients/dashboard')
+
+        print("Tentative de transfert de", montant, "€ de", compte_debite, "vers", compte_credit)
+
+        response = requests.post(f"{DJANGO_HOST}/api/transfer", data={
+            'compte_debite': compte_debite,
+            'compte_credit': compte_credit,
+            'montant': montant,
+            'username': username,
+            'password': password
+        })
+
+        if response.ok:
+            data = response.json()
+            print("Transfert réussi :", data)
+            messages.success(request, f"Transfert de {montant}€ de {compte_debite} vers {compte_credit} en attente de validation.")
+        else:
+            try:
+                error_msg = response.json().get('error', 'Erreur inconnue')
+            except Exception as e:
+                print("Erreur JSON :", e)
+                error_msg = response.text
+            messages.error(request, f"Échec du transfert : {error_msg}")
+
+        return redirect('/clients/dashboard')  # Redirection après le transfert
     else:
         messages.error(request, "Veuillez vous connecter d'abord.")
         return redirect('/auth/clients')

@@ -89,14 +89,14 @@ else
 
     # faire une requête POST pour enregistrer les identifiants
     echo -e "${YELLOW}⚙️ Enregistrement des identifiants dans l'API...${NC}"
-    curl -s -X POST "$API_HOST/api/user/" \
+    curl -s -X POST "$API_HOST/api/user" \
             -H "Content-Type: application/json" \
             -d '{
                 "nom": "'"$USERNAME"'",
                 "email": "'"$EMAIL"'",
                 "mot_de_passe": "'"$PASSWORD"'",
                 "role": "agent_bancaire"
-            }' > /dev/null
+            }'
 
     echo -e "${GREEN}✔️ Identifiants enregistrés avec succès.${NC}"
     echo -e "${YELLOW}⚙️ Activation de l'environnement virtuel et démarrage de Django...${NC}"

@@ -49,7 +49,6 @@
         {% endfor %}
 
         {% for account in accounts_pending %}
-        <p>{{account.id}}</p>
         <div class="transaction-item">
             <strong>{{ account.type_compte }}</strong> - {{ account.date_creation }}<br>
             IBAN : {{ account.iban }}<br>
