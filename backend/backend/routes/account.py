@@ -29,8 +29,8 @@ async def list_accounts(user: CurrentUser):
         ListAccountsResponse(
             account=account,
             validation=validations.get(
-                account.id
-            ),  # pyright: ignore[reportArgumentType]
+                account.id  # pyright: ignore[reportArgumentType]
+            ),
         )
         for account in accounts
     ]
@@ -40,7 +40,6 @@ async def list_accounts(user: CurrentUser):
 async def list_accounts_to_validate(user: CurrentUser):
     """Liste tous les comptes utilisateurs à valider."""
     user.can_authorize()
-    # Fetch all accounts that have no records in ValidationCompte table
     accounts = await Compte.filter(validation=None)
     return accounts
 
