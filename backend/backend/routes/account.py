@@ -36,7 +36,7 @@ async def list_accounts(user: CurrentUser):
     ]
 
 
-@router.get("/tovalidate", response_model=list[Compte])
+@router.get("/tovalidate", response_model=list[pydantic_model_creator(Compte)])
 async def list_accounts_to_validate(user: CurrentUser):
     """Liste tous les comptes utilisateurs à valider."""
     user.can_authorize()
