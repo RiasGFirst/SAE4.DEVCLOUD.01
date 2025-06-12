@@ -3,6 +3,8 @@ FROM python:3.13-slim
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
+EXPOSE 8000
+
 WORKDIR /app
 
 # Installer les dépendances système
