@@ -1,20 +1,19 @@
 import typing
 from enum import Enum
+from functools import partial
 
 from fastapi import HTTPException
 from passlib.hash import sha256_crypt
+from schwifty import IBAN
 from tortoise import BaseDBAsyncClient, Model, fields
-from tortoise.contrib.pydantic import pydantic_model_creator
-from tortoise.signals import pre_save
+from tortoise.expressions import Q
+from tortoise.signals import post_save, pre_save
+from tortoise.transactions import in_transaction
 
 
 class TypeUtilisateur(str, Enum):
     USER = "utilisateur"
     AGENT = "agent_bancaire"
-
-
-class RequireValidation:
-    validated = fields.BooleanField(default=False)
 
 
 class Utilisateur(Model):
@@ -25,7 +24,7 @@ class Utilisateur(Model):
     role = fields.CharEnumField(TypeUtilisateur, default=TypeUtilisateur.USER)
     date_creation = fields.DatetimeField(auto_now_add=True)
 
-    comptes = fields.ReverseRelation["Compte"]
+    comptes: fields.ReverseRelation["Compte"]
 
     def verify_password(self, password: str) -> bool:
         """
@@ -53,7 +52,7 @@ async def user_hash_password(
     update_fields: list[str],
 ) -> None:
     """
-    Vérifixe que l'utilisateur a un mot de passe avant de sauvegarder.
+    Vérifie que l'utilisateur a un mot de passe avant de sauvegarder.
     Sinon, hasher le mot de passe si nécessaire.
     """
     if not instance.password:
@@ -67,24 +66,34 @@ class TypeCompte(str, Enum):
     LIVRET = "livret"
 
 
-class Compte(Model, RequireValidation):
+class Compte(Model):
     id = fields.IntField(primary_key=True, unique=True)
+    iban = fields.CharField(
+        max_length=34, unique=True, default=partial(IBAN.random, country_code="FR")
+    )
     utilisateur: fields.ForeignKeyRelation["Utilisateur"] = fields.ForeignKeyField(
         "models.Utilisateur", related_name="comptes"
     )
     type_compte = fields.CharEnumField(TypeCompte)
     solde = fields.DecimalField(max_digits=10, decimal_places=2, default=0.00)
+    validation: fields.ReverseRelation["ValidationCompte"]
 
     date_creation = fields.DatetimeField(auto_now_add=True)
 
-    retraits = fields.ReverseRelation["Retrait"]
-    depots = fields.ReverseRelation["Depot"]
-    operations_envoi = fields.ReverseRelation["Virement"]
-    operations_reception = fields.ReverseRelation["Virement"]
+    async def get_allowed_balance(self) -> float:
+        """Obtiens le solde autorisé en prenant en compte les transactions non traitées."""
+        current = self.solde
+        transactions = await Operation.filter_by_account(self).filter(processed=False)
+        for transaction in transactions:
+            current += transaction.montant
+        return float(current)
 
-    def ensure_validated(self) -> typing.Literal[True]:
-        if not self.validated:
+    async def ensure_validated(self) -> typing.Literal[True]:
+        validation = await ValidationCompte.filter(compte=self).get_or_none()
+        if not validation:
             raise HTTPException(status_code=403, detail="Account not yet validated.")
+        if not validation.valide:
+            raise HTTPException(status_code=403, detail="Account not validated.")
         return True
 
     @classmethod
@@ -97,80 +106,62 @@ class Compte(Model, RequireValidation):
             raise HTTPException(status_code=404, detail="Account not found.")
         return found_account
 
-    async def get_all_operations(self) -> list["Retrait | Depot | Virement"]:
-        return [
-            *(await Retrait.filter(compte=self)),
-            *(await Depot.filter(compte=self)),
-            *(await Virement.filter(compte_envoi=self)),
-        ]
+    async def get_all_operations(
+        self, prefetch_decisions: bool = False
+    ) -> typing.Iterable["Operation"]:
+        return await Operation.filter_by_account(self, prefetch_decisions)
 
 
-class Retrait(Model):
-    operation = "retrait"
+class ValidationCompte(Model):
+    """Modèle utilisé pour confirmer qu'un compte peut être utilisé."""
 
     id = fields.IntField(primary_key=True, unique=True)
+    valide = fields.BooleanField(default=False)
     compte: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField(
-        "models.Compte", related_name="retraits"
+        "models.Compte", related_name="validation"
     )
-    montant = fields.DecimalField(max_digits=15, decimal_places=2)
-    date_creation = fields.DatetimeField(auto_now_add=True)
-
-    decision = fields.ForeignKeyField(
-        "models.Decision", related_name="retraits", null=True, on_delete=fields.RESTRICT
+    agent: fields.ForeignKeyNullableRelation["Utilisateur"] = fields.ForeignKeyField(
+        "models.Utilisateur", related_name="validation_agent", null=True
     )
-
-    class PydanticMeta:
-        extra = ["operation"]
-
-    async def get_decision(self) -> "Decision | None":
-        return await Decision.filter(operation=self).first()
+    date_validation = fields.DatetimeField(auto_now_add=True)
 
 
-RetraitPydantic = typing.Annotated[Retrait, pydantic_model_creator(Retrait, name="Retrait")]
+class TypeOperation(str, Enum):
+    DEPOT = "depot"
+    RETRAIT = "retrait"
+    VIREMENT = "virement"
 
 
-class Depot(Model):
-    operation = "depot"
-
+class Operation(Model):
     id = fields.IntField(primary_key=True, unique=True)
-    compte: fields.ForeignKeyNullableRelation["Compte"] = fields.ForeignKeyField(
-        "models.Compte", related_name="depots"
+    type_operation = fields.CharEnumField(TypeOperation)
+
+    compte_source: fields.ForeignKeyNullableRelation["Compte"] = fields.ForeignKeyField(
+        "models.Compte", related_name="operations_source", null=True
     )
-    montant = fields.DecimalField(max_digits=15, decimal_places=2)
+    compte_destination: fields.ForeignKeyNullableRelation["Compte"] = (
+        fields.ForeignKeyField(
+            "models.Compte", related_name="operations_destination", null=True
+        )
+    )
+
+    processed = fields.BooleanField(default=False)
+    montant = fields.DecimalField(max_digits=16, decimal_places=2)
+    decision = fields.ForeignKeyNullableRelation["Decision"]
+
     date_creation = fields.DatetimeField(auto_now_add=True)
 
+    @classmethod
+    async def filter_unvalidated(cls) -> typing.Iterable[typing.Self]:
+        return await cls.filter(decision=None)
 
-DepotPydantic = typing.Annotated[Depot, pydantic_model_creator(Depot, name="Depot")]
+    @classmethod
+    def filter_by_account(cls, compte: "Compte", prefetch_decisions: bool = False):
+        op = cls.filter(Q(compte_source=compte) | Q(compte_destination=compte))
+        if prefetch_decisions:
+            return op.prefetch_related("decision")
+        return op
 
-
-class Virement(Model):
-    operation = "virement"
-
-    id = fields.IntField(primary_key=True, unique=True)
-    compte_envoi: fields.ForeignKeyNullableRelation["Compte"] = fields.ForeignKeyField(
-        "models.Compte", related_name="operations_envoi", null=True
-    )
-    compte_reception: fields.ForeignKeyRelation["Compte"] = fields.ForeignKeyField(
-        "models.Compte", related_name="operations_reception"
-    )
-    montant = fields.DecimalField(max_digits=15, decimal_places=2)
-    date_creation = fields.DatetimeField(auto_now_add=True)
-
-    decision = fields.ForeignKeyField(
-        "models.Decision",
-        related_name="virements",
-        null=True,
-        on_delete=fields.RESTRICT,
-    )
-
-    async def get_decision(self) -> "Decision | None":
-        return await Decision.filter(operation=self).first()
-
-
-VirementPydantic = typing.Annotated[Virement, pydantic_model_creator(Virement, name="Virement")]
-
-
-Operations: typing.TypeAlias = "type[Retrait | Depot | Virement]"
 
 class Decision(Model):
     id = fields.IntField(primary_key=True, unique=True)
@@ -179,13 +170,39 @@ class Decision(Model):
         "models.Utilisateur",
         related_name="decisions_agent",
         null=True,
-        on_delete=fields.CASCADE,
+        on_delete=fields.RESTRICT,
+    )
+    operation: fields.ForeignKeyRelation["Operation"] = fields.ForeignKeyField(
+        "models.Operation", related_name="decision"
     )
     date_creation = fields.DatetimeField(auto_now_add=True)
 
-    depots: fields.ReverseRelation["Depot"]
-    retraits: fields.ReverseRelation["Depot"]
-    virements: fields.ReverseRelation["Virement"]
+
+@post_save(Decision)
+async def update_operation(
+    sender: type[Decision],
+    instance: Decision,
+    created: bool,
+    using_db: BaseDBAsyncClient | None,
+    update_fields: list[str],
+) -> None:
+    if not instance.operation:
+        await instance.fetch_related("operation")
+
+    if instance.operation.type_operation == TypeOperation.DEPOT or not instance.valide:
+        return
+
+    await instance.operation.fetch_related("compte_source", "compte_destination")
+    source = instance.operation.compte_source
+    destination = instance.operation.compte_destination
+
+    async with in_transaction():
+        if source:
+            source.solde += instance.operation.montant
+            await source.save()
+        if destination:
+            destination.solde -= instance.operation.montant
+            await destination.save()
 
 
 class Log(Model):

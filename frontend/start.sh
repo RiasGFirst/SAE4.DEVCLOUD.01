@@ -1,80 +1,75 @@
 #!/bin/bash
 
-# Chemin vers le fichier d'authentification
-AUTH_FILE="bauth.txt"
+AUTH_FILE="accounts.txt"
 
-# Fonction pour générer une chaîne aléatoire
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m'
+
 generate_random() {
     tr -dc 'a-zA-Z0-9' </dev/urandom | head -c "$1"
 }
 
-# Charger les variables du fichier .env s'il existe
-load_env() {
-    if [ -f ".env" ]; then
-        export $(grep -v '^#' .env | xargs)
+# load_env() {
+#     if [ -f ".env" ]; then
+#         echo "${GREEN}✔️ Chargement des variables d'environnement...${NC}"
+#         export $(grep -v '^#' .env | xargs)
+#     else
+#         echo -e "${RED}❌ Fichier .env introuvable.${NC}"
+#         exit 1
+#     fi
+# }
+
+check_api() {
+    if [ -z "$API_HOST" ]; then
+        echo -e "${RED}❌ API_HOST n'est pas défini.${NC}"
+        exit 1
+    fi
+    echo -e "${YELLOW}🔍 Vérification API à $API_HOST...${NC}"
+    response=$(curl -s "$API_HOST/api/ping")
+    if [ "$response" == '"pong"' ]; then
+        echo -e "${GREEN}✔️ API accessible.${NC}"
     else
-        echo "❌ Fichier .env introuvable."
+        echo -e "${RED}❌ API inaccessible.${NC}"
         exit 1
     fi
 }
 
-# Activer l'environnement virtuel
-activate_venv() {
-    if [ -f "venv/bin/activate" ]; then
-        source venv/bin/activate
-    else
-        echo "Environnement virtuel non trouvé. Création..."
-        python3 -m venv venv
-        source venv/bin/activate
-        pip install -r requirements.txt
-    fi
-}
-
-# Lancer Django
 run_django() {
-    echo "Lancement du serveur Django..."
+    echo -e "${GREEN}🚀 Démarrage du serveur Django...${NC}"
+    
+    echo "USER: $(grep 'username:' "$AUTH_FILE" | cut -d ' ' -f2)"
+    echo "EMAIL: $(grep 'email:' "$AUTH_FILE" | cut -d ' ' -f2)"
+    echo "PASSWORD: $(grep 'mdp:' "$AUTH_FILE" | cut -d ' ' -f2)"
+
     python webclient/manage.py runserver 0.0.0.0:8000
 }
 
+# load_env
+check_api
 
-# Charger les variables .env
-load_env
-
-# Vérifie si le fichier bauth.txt existe
 if [ -f "$AUTH_FILE" ]; then
-    echo "Fichier $AUTH_FILE trouvé."
-    activate_venv
+    echo -e "${GREEN}✔️ $AUTH_FILE trouvé.${NC}"
     run_django
 else
-    echo "Fichier $AUTH_FILE manquant. Création d'identifiants..."
-
+    echo -e "${YELLOW}⚠️ $AUTH_FILE manquant. Création...${NC}"
     USERNAME="user_$(generate_random 6)"
     EMAIL="${USERNAME}@example.com"
     PASSWORD="$(generate_random 12)"
-
     echo "username: $USERNAME" > "$AUTH_FILE"
     echo "email: $EMAIL" >> "$AUTH_FILE"
     echo "mdp: $PASSWORD" >> "$AUTH_FILE"
 
-    # Vérifie que API_HOST est défini
-    if [ -z "$API_HOST" ]; then
-        echo "❌ API_HOST n'est pas défini dans le .env."
-        exit 1
-    fi
+    curl -s -X POST "$API_HOST/api/user" \
+         -H "Content-Type: application/json" \
+         -d '{
+             "nom": "'"$USERNAME"'",
+             "email": "'"$EMAIL"'",
+             "mot_de_passe": "'"$PASSWORD"'",
+             "role": "agent_bancaire"
+         }'
 
-    # faire une requête POST pour enregistrer les identifiants
-    echo "Enregistrement des identifiants dans l'API..."
-    curl -X POST "$API_HOST/api/user/" \
-        -H "Content-Type: application/json" \
-        -d '{
-            "nom": "'"$USERNAME"'",
-            "email": "'"$EMAIL"'",
-            "mot_de_passe": "'"$PASSWORD"'",
-            "role": "agent_bancaire"
-        }'
-
-
-    echo "Identifiants enregistrés dans $AUTH_FILE"
-    activate_venv
+    echo -e "${GREEN}✔️ Identifiants créés et envoyés.${NC}"
     run_django
 fi

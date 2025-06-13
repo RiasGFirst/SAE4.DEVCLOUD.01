@@ -89,7 +89,7 @@ def get_accounts(request):
             
             # If accounts are found, return them
             print("Accounts retrieved successfully:", data)
-            return JsonResponse(data)
+            return JsonResponse(data, safe=False)
         else:
             print("Authentication failed:", response.status_code, response.text)
             return JsonResponse({"error": "Authentication failed"}, status=response.status_code)
@@ -121,13 +121,304 @@ def connect_banquier(request):
         return JsonResponse({"error": "Method not allowed"}, status=405)
 
 
-
+def create_baccount(request):
+    """
+    Create a new bank account for a user.
     
-"""
-{
-  "nom": "string",
-  "email": "string",
-  "mot_de_passe": "string",
-  "role": "utiisateur"
-}
-"""
+    Expected JSON body:
+    """
+    pass
+
+
+@csrf_exempt
+def deposite_account(request):
+    """
+    Deposit money into a bank account.
+    """
+    if request.method == 'POST':
+        compte_id = request.POST.get('compte_id')
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+
+        data = {
+            'montant': request.POST.get('montant'),
+        }
+        response = requests.post(
+            f"{API_HOST}/api/transaction/{compte_id}/depot",
+            json=data,
+            auth=(username, password),
+            headers={'Content-Type': 'application/json'}
+        )
+
+        if response.ok:
+            data = response.json()
+            return JsonResponse(data, status=201)
+        else:
+            print("Deposit failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_transactions(request):
+    if request.method == 'POST':
+        username = request.POST.get('busername')
+        password = request.POST.get('bpassword')
+
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+        response = requests.get(f"{API_HOST}/api/transaction/tovalidate",
+                                auth=(username, password),
+                                headers={'Content-Type': 'application/json'})
+        print(response)
+        if response.ok:
+            data = response.json()
+            if not data:
+                print("No transactions to validate.")
+                return JsonResponse({"error": "No transactions to validate"}, status=200)
+            print("Transactions retrieved successfully:", data)
+            return JsonResponse(data, safe=False)
+        else:
+            print("Failed to retrieve transactions:", response.status_code, response.text)
+            return JsonResponse({"error": "Failed to retrieve transactions"}, status=response.status_code)
+        
+@csrf_exempt
+def transfer_account(request):
+    if request.method == 'POST':
+
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        compte_debite = request.POST.get('compte_debite')
+        compte_credit = request.POST.get('compte_credit')
+        montant = request.POST.get('montant')
+
+        if not compte_debite or not compte_credit or not montant:
+            print("Account IDs or amount not provided.")
+            return JsonResponse({"error": "Account IDs or amount not provided"}, status=400)
+        
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+
+        data = {
+            'montant': montant,
+            'target': compte_credit
+        }
+
+        response = requests.post(f"{API_HOST}/api/transaction/{compte_debite}/virement",
+                                 json=data,
+                                 auth=(username, password),
+                                 headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            print("Transfer request successful:", data)
+            return JsonResponse(data, status=201)
+        else:
+            print("Transfer request failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def withdraw_account(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        compte_id = request.POST.get('compte_id')
+        montant = request.POST.get('montant')
+
+        if not compte_id or not montant:
+            print("Account ID or amount not provided.")
+            return JsonResponse({"error": "Account ID or amount not provided"}, status=400)
+        
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+
+        data = {
+            'montant': montant,
+        }
+
+        response = requests.post(f"{API_HOST}/api/transaction/{compte_id}/retrait",
+                                json=data,
+                                auth=(username, password),
+                                headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            print("Withdraw request successful:", data)
+            return JsonResponse(data, status=201)
+        else:
+            print("Withdraw request failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+
+@csrf_exempt
+def process_transaction(request):
+    if request.method == 'POST':
+        transaction_id = request.POST.get('transaction_id')
+        action = request.POST.get('action')
+        username = request.POST.get('busername')
+        password = request.POST.get('bpassword')
+
+        if not transaction_id or not action:
+            print("Transaction ID or action not provided.")
+            return JsonResponse({"error": "Transaction ID or action not provided"}, status=400)
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+        
+        if action not in ['validate', 'refuse']:
+            print("Invalid action provided.")
+            return JsonResponse({"error": "Invalid action provided"}, status=400)
+        
+        data = {
+            "authorize": action == 'validate'
+        }
+
+        response = requests.post(f"{API_HOST}/api/transaction/validate/{transaction_id}",
+                                 json=data,
+                                auth=(username, password),
+                                headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            print("Transaction processed successfully:", data)
+            if action == 'validate':
+                print(f"Transaction {transaction_id} validated successfully.")
+            else:
+                print(f"Transaction {transaction_id} refused successfully.")
+            return JsonResponse(data, status=200)
+        else:
+            print("Transaction processing failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        print("Method not allowed for processing transaction.")
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+
+@csrf_exempt
+def account_creation(request):
+    if request.method == 'POST':
+        username = request.POST.get('username')
+        password = request.POST.get('password')
+        type_compte = request.POST.get('compte_type')
+
+        if not username or not password or not type_compte:
+            print("Username, password, or account type not provided.")
+            return JsonResponse({"error": "Username, password, or account type not provided"}, status=400)
+        
+        #type_compte = courrant, livret et type: 'compte_courant', 'livret'
+        if type_compte == 'courant':
+            type = 'compte_courant'
+        elif type_compte == 'livret':
+            type = 'livret'
+        else:
+            print("Invalid account type provided.")
+            return JsonResponse({"error": "Invalid account type provided"}, status=400)
+        
+        data = {
+            'type': type,
+            'solde_initial': 0
+        }
+
+        response = requests.post(f"{API_HOST}/api/account",
+                                 json=data,
+                                 auth=(username, password),
+                                 headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            print("Account created successfully:", data)
+            return JsonResponse(data, status=201)
+        else:
+            print("Account creation failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+
+
+@csrf_exempt
+def get_accounts_pending(request):
+    if request.method == 'POST':
+        username = request.POST.get('busername')
+        password = request.POST.get('bpassword')
+
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+        
+        print("Fetching pending accounts for the dashboard:", username)
+        
+        response = requests.get(f"{API_HOST}/api/account/tovalidate",
+                                auth=(username, password),
+                                headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            data = response.json()
+            if not data:
+                print("No pending accounts found.")
+                return JsonResponse({"error": "No pending accounts found"}, status=201)
+            print("Pending accounts retrieved successfully:", data)
+            return JsonResponse(data, safe=False)
+        else:
+            print("Failed to retrieve pending accounts:", response.status_code, response.text)
+            return JsonResponse({"error": "Failed to retrieve pending accounts"}, status=response.status_code)
+    else:
+        return JsonResponse({"error": "Method not allowed"}, status=405)
+    
+
+@csrf_exempt
+def process_account(request):
+    if request.method == 'POST':
+        account_id = request.POST.get('account_id')
+        action = request.POST.get('action')
+        username = request.POST.get('busername')
+        password = request.POST.get('bpassword')
+
+        if not account_id or not action:
+            print("Account ID or action not provided.")
+            return JsonResponse({"error": "Account ID or action not provided"}, status=400)
+        if not username or not password:
+            print("Username or password not provided.")
+            return JsonResponse({"error": "Username or password not provided"}, status=400)
+        
+        if action not in ['validate', 'refuse']:
+            print("Invalid action provided.")
+            return JsonResponse({"error": "Invalid action provided"}, status=400)
+        
+        data = {
+            "authorize": action == 'validate'
+        }
+
+        response = requests.post(f"{API_HOST}/api/account/{account_id}/approval",
+                                 json=data,
+                                 auth=(username, password),
+                                 headers={'Content-Type': 'application/json'})
+        
+        if response.ok:
+            if response.status_code == 204:
+            # No content returned, just a success status
+                print("Account processed successfully with no content returned.")
+                data = {"message": "Account processed successfully"}
+                return JsonResponse(data, status=204)
+
+            data_r = response.json()
+            print("Account processed successfully:", data)
+            if action == 'validate':
+                print(f"Account {account_id} validated successfully.")
+            else:
+                print(f"Account {account_id} refused successfully.")
+            return JsonResponse(data_r, status=200, safe=False)
+        else:
+            print("Account processing failed:", response.status_code, response.text)
+            return JsonResponse(response.json(), status=response.status_code)
+    else:
+        print("Method not allowed for processing account.")
+        return JsonResponse({"error": "Method not allowed"}, status=405)

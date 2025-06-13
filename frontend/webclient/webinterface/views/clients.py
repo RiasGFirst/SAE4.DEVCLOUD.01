@@ -1,7 +1,7 @@
 from django.shortcuts import render, redirect
 from django.contrib import messages  # 👈 important
-import dotenv
 import requests
+import dotenv
 import os
 
 # Load environment variables from .env file
@@ -27,7 +27,7 @@ def auth_page(request):
                 if response.ok:
                     data = response.json()
                     print(data)
-                    messages.success(request, f"L'utilisateur {data['nom']} a été inscrit avec succès.")
+                    messages.success(request, f"L'utilisateur {username} a été inscrit avec succès.")
                 else:
                     try:
                         error_msg = response.json().get('error', 'Erreur inconnue')
@@ -97,10 +97,44 @@ def dashboard_client(request):
                                 'password': request.COOKIES.get('password')
                             })
     if response.ok:
-        comptes = response.json()
-        print("Comptes récupérés :", comptes)  # Pour debug
-        messages.success(request, "Comptes récupérés avec succès.")
+        comptes_data = response.json()
+        print("Comptes récupérés :", comptes_data)  # Pour debug
+        comptes = []
+        for compte_data in comptes_data:
+            print("Traitement du compte :", compte_data)  # Pour debug
 
+            compte = compte_data.get('account', {}) or {}
+            validation = compte_data.get('validation', {}) or {}
+            print("Données du compte :", compte)  # Pour debug
+            print("Données de validation :", validation)  # Pour debug
+
+            # {'account': {'id': 1, 'iban': 'FR613000114830X17RFZ0BNHL69', 'type_compte': 'compte_courant', 'solde': '0.00', 'date_creation': '2025-06-11T08:07:39.218195Z'}, 
+            # 'validation': {'id': 1, 'valide': True, 'date_validation': '2025-06-11T08:07:39.220447Z'}} or None or 'valide': False
+
+            if validation == {}:
+                pending = True
+                validated = False  # Si pas de validation, on considère que le compte est en attente
+            else:
+                pending = False
+                validated = validation.get('valide')  # Assurez-vous que le champ validé est défini
+            #validated = validation.get('valide') or False  # Assurez-vous que le champ validé est défini
+
+            compte_type = compte.get('type_compte')  # Assurez-vous que le type de compte est défini
+            comptes_type = {
+                'compte_courant': 'Compte courant',
+                'livret': 'Livret A',
+            }
+
+            compte['type'] = comptes_type[compte_type]  # Assurez-vous que le type de compte est défini
+            compte['numero'] = compte.get('id', 'N/A')
+            compte['iban'] = compte.get('iban', 'N/A')  # Assurez-vous que l'IBAN est défini
+            compte['solde'] = float(compte.get('solde', 0.0))  # Assurez-vous que le solde est un float
+            compte['validated'] = validated  # Assurez-vous que le champ validé est défini
+            compte['pending'] = pending  # Assurez-vous que le champ en attente est défini
+
+            print("Compte traité :", compte)  # Pour debug
+            comptes.append(compte)
+        # Si les comptes sont récupérés avec succès, on les passe au template
         return render(request, 'clients/dashboard.html', {
             'comptes': comptes,
             'nom_client': nom_client
@@ -137,3 +171,154 @@ def logout(request):
     response.delete_cookie('user')
     messages.success(request, "Vous avez été déconnecté avec succès.")
     return response
+
+
+def create_account(request):
+    pass
+
+
+def account_deposite(request):
+    if request.method == "POST":
+        compte_id = request.POST.get('compte')
+        montant = request.POST.get('montant')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if compte_id and montant:
+            print("Tentative de dépôt sur le compte :", compte_id, "Montant :", montant)  # Pour debug
+            response = requests.post(f"{DJANGO_HOST}/api/deposit", data={
+                'compte_id': compte_id,
+                'montant': montant,
+                'username': username,
+                'password': password
+            })
+            if response.ok:
+                data = response.json()
+                print("Dépôt réussi :", data)
+                messages.success(request, f"Dépôt de {montant}€ sur le compte {compte_id} réussi.")
+            else:
+                try:
+                    error_msg = response.json().get('error', 'Erreur inconnue')
+                except Exception as e:
+                    print("Erreur JSON :", e)
+                    error_msg = response.text
+                messages.error(request, f"Échec du dépôt : {error_msg}")
+            return redirect('/clients/dashboard')  # Redirection après le dépôt
+        else:
+            messages.error(request, "Veuillez fournir un identifiant de compte et un montant.")
+            return redirect('/clients/dashboard')
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')
+
+
+def account_withdraw(request):
+    if request.method == "POST":
+        compte_id = request.POST.get('compte')
+        montant = request.POST.get('montant')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if compte_id and montant and username and password:
+            print("Tentative de retrait du compte :", compte_id, "Montant :", montant)  # Pour debug
+            response = requests.post(f"{DJANGO_HOST}/api/withdraw", data={
+                'compte_id': compte_id,
+                'montant': montant,
+                'username': username,
+                'password': password
+            })
+
+            if response.ok:
+                data = response.json()
+                print("Retrait réussi :", data)
+                messages.success(request, f"Retrait de {montant}€ du compte {compte_id} en attente de validation.")
+            else:
+                try:
+                    error_msg = response.json().get('error') or response.json().get('detail')
+                except Exception as e:
+                    print("Erreur JSON :", e)
+                    error_msg = response.text
+                messages.error(request, f"Échec du retrait : {error_msg}")
+            return redirect('/clients/dashboard')
+        
+        else:
+            messages.error(request, "Veuillez fournir un identifiant de compte et un montant.")
+            return redirect('/clients/dashboard')
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')
+
+
+def account_creation(request):
+    if request.method == "POST":
+        compte_type = request.POST.get('type_compte')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if compte_type and username and password:
+            print("Création d'un compte de type :", compte_type, "pour l'utilisateur :", username)  # Pour debug
+
+            response = requests.post(f"{DJANGO_HOST}/api/account_creation", data={
+                'compte_type': compte_type,
+                'username': username,
+                'password': password
+            })
+            if response.ok:
+                data = response.json()
+                print("Compte créé avec succès :", data)
+                messages.success(request, f"Demande de création de compte {compte_type} envoyée avec succès.")
+            else:
+                try:
+                    error_msg = response.json().get('error', 'Erreur inconnue')
+                except Exception as e:
+                    print("Erreur JSON :", e)
+                    error_msg = response.text
+                messages.error(request, f"Échec de la création du compte : {error_msg}")
+            return redirect('/clients/dashboard')
+        
+        else:
+            messages.error(request, "Veuillez fournir un type de compte valide.")
+            return redirect('/clients/dashboard')
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')
+    
+
+def account_transfert(request):
+    if request.method == "POST":
+        compte_debite = request.POST.get('compte_debite')
+        compte_credit = request.POST.get('compte_credit')
+        montant = request.POST.get('montant')
+        username = request.COOKIES.get('username')
+        password = request.COOKIES.get('password')
+
+        if not (compte_debite and compte_credit and montant):
+            messages.error(request, "Veuillez fournir les informations nécessaires pour le transfert.")
+            return redirect('/clients/dashboard')
+
+        print("Tentative de transfert de", montant, "€ de", compte_debite, "vers", compte_credit)
+
+        response = requests.post(f"{DJANGO_HOST}/api/transfer", data={
+            'compte_debite': compte_debite,
+            'compte_credit': compte_credit,
+            'montant': montant,
+            'username': username,
+            'password': password
+        })
+
+        if response.ok:
+            data = response.json()
+            print("Transfert réussi :", data)
+            messages.success(request, f"Transfert de {montant}€ de {compte_debite} vers {compte_credit} en attente de validation.")
+        else:
+            try:
+                error_msg = response.json().get('error', 'Erreur inconnue')
+            except Exception as e:
+                print("Erreur JSON :", e)
+                error_msg = response.text
+            messages.error(request, f"Échec du transfert : {error_msg}")
+
+        return redirect('/clients/dashboard')  # Redirection après le transfert
+    else:
+        messages.error(request, "Veuillez vous connecter d'abord.")
+        return redirect('/auth/clients')

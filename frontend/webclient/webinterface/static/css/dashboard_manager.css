@@ -88,3 +88,40 @@ body {
 .btn.refus:hover {
     background-color: #a00000;
 }
+
+.messages {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.messages li {
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.messages li.error {
+    background-color: #ffe0e0;
+    color: #b30000;
+}
+
+.messages li.success {
+    background-color: #e0ffe6;
+    color: #006600;
+}
+
+.messages li.info {
+    background-color: #e0f7fa;
+    color: #006064;
+}
+
+.messages li.warning {
+    background-color: #fff3cd;
+    color: #856404;
+}
+
+.status.pending {
+    color: #ffa500;
+    font-style: italic;
+}

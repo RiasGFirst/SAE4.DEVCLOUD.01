@@ -14,8 +14,8 @@
 
     <div class="container">
         <h2>Bienvenue, {{ nom_client }}</h2>
-
         <p>Voici un aperçu de vos comptes :</p>
+
         {% if messages %}
             <ul class="messages">
                 {% for message in messages %}
@@ -24,35 +24,115 @@
             </ul>
         {% endif %}
 
-        <div class="account-list">
-            {% if comptes %}
-            <p>Vous avez {{ comptes|length }} compte(s) :</p>
-            {% else %}
-            <p>Vous n'avez aucun compte. Veuillez contacter votre banquier pour en créer un.</p>
-            {% endif %}
-            {% for compte in comptes %}
-            <div class="account-item">
-                <strong>{{ compte.type }}</strong><br>
-                Numéro de compte : {{ compte.numero }}<br>
-                Solde : {{ compte.solde }} €
+        <div class="content-wrapper">
+            <div class="account-list">
+                {% if comptes %}
+                <p>Vous avez {{ comptes|length }} compte(s) :</p>
+                {% else %}
+                <p>Vous n'avez aucun compte. Veuillez contacter votre banquier pour en créer un.</p>
+                {% endif %}
+                {% for compte in comptes %}
+                <div class="account-item">
+                    <strong>{{ compte.type }}</strong><br>
+                    Numéro de compte : {{ compte.iban }}<br>
+                    Solde : {{ compte.solde }} €
+                    <br>
+                    {% if compte.validated == False and compte.pending == True %}
+                    <span class="status pending">En attente de validation</span>
+                    {% elif compte.validated == False and compte.pending == False %}
+                    <span class="status refused">Compte refusé</span>
+                    {% else %}
+                    <span class="status validated">Compte validé</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
             </div>
-            {% endfor %}
-        </div>
 
-        <form method="post" action="#" class="create-account-form">
-            {% csrf_token %}
-            <select name="type_compte" required>
-                <option value="">-- Choisir un type de compte --</option>
-                <option value="courant">Compte courant</option>
-                <option value="livret">Livret</option>
-            </select>
-            <button type="submit" class="btn">Créer un compte</button>
-        </form>
+            <div class="operations">
+                <form method="post" action="{% url 'create_account_client' %}" class="inline-form">
+                    {% csrf_token %}
+                    <div class="form-content">
+                        <select name="type_compte" required>
+                            <option value="">-- Choisir un type de compte --</option>
+                            <option value="courant">Compte courant</option>
+                            <option value="livret">Livret</option>
+                        </select>
+                    </div>
+                    <button type="submit" class="btn">Créer un compte</button>
+                </form>
 
-        <div class="buttons">
-            <a href="#" class="btn">Faire un virement</a>
-            <a href="#" class="btn">Retirer</a>
-            <a href="#" class="btn">Déposer</a>
+                <form method="post" action="{% url 'deposit_client' %}" class="inline-form">
+                    {% csrf_token %}
+                    <div class="form-content">
+                        <select name="compte" required>
+                            <option value="">-- Sélectionner un compte --</option>
+                            {% for compte in comptes %}
+                                {% if compte.validated == True and compte.pending == False %}
+                                    <option value="{{ compte.numero }}">{{ compte.type }} (Solde: {{ compte.solde }} €)</option>
+                                {% elif compte.validated == False and compte.pending == False %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (Compte refusé)</option>
+                                {% else %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (En attente de validation)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="number" step="0.01" name="montant" placeholder="Montant" required>
+                    </div>
+                    <button type="submit" class="btn">Déposer</button>
+                </form>
+
+                <form method="post" action="{% url 'withdraw_client' %}" class="inline-form">
+                    {% csrf_token %}
+                    <div class="form-content">
+                        <select name="compte" required>
+                            <option value="">-- Sélectionner un compte --</option>
+                            {% for compte in comptes %}
+                                {% if compte.validated == True and compte.pending == False %}
+                                    <option value="{{ compte.numero }}">{{ compte.type }} (Solde: {{ compte.solde }} €)</option>
+                                {% elif compte.validated == False and compte.pending == False %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (Compte refusé)</option>
+                                {% else %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (En attente de validation)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="number" step="0.01" name="montant" placeholder="Montant" required>
+                    </div>
+                    <button type="submit" class="btn">Retirer</button>
+                </form>
+
+                <form method="post" action="{% url 'transfer_client' %}" class="inline-form">
+                    {% csrf_token %}
+                    <div class="form-content">
+                        <select name="compte_debite" required>
+                            <option value="">-- Sélectionner un compte --</option>
+                            {% for compte in comptes %}
+                                {% if compte.validated == True and compte.pending == False %}
+                                    <option value="{{ compte.numero }}">{{ compte.type }} (Solde: {{ compte.solde }} €)</option>
+                                {% elif compte.validated == False and compte.pending == False %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (Compte refusé)</option>
+                                {% else %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (En attente de validation)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <select name="compte_credit" required>
+                            <option value="">-- Sélectionner un compte --</option>
+                            {% for compte in comptes %}
+                                {% if compte.validated == True and compte.pending == False %}
+                                    <option value="{{ compte.numero }}">{{ compte.type }} (Solde: {{ compte.solde }} €)</option>
+                                {% elif compte.validated == False and compte.pending == False %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (Compte refusé)</option>
+                                {% else %}
+                                    <option value="{{ compte.numero }}" disabled>{{ compte.type }} (En attente de validation)</option>
+                                {% endif %}
+                            {% endfor %}
+                        </select>
+                        <input type="number" step="0.01" name="montant" placeholder="Montant" required>
+                    </div>
+                    <button type="submit" class="btn">Faire un virement</button>
+                </form>
+            </div>
         </div>
     </div>
 </body>
